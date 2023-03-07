@@ -1,0 +1,30 @@
+[tool.pdm]
+
+[project]
+name = "nonebot_plugin_valorant"
+version = "0.1.0"
+description = "Valorant bot for qq plaform power by NoneBot2"
+authors = [
+    {name = "BalconyJH", email = "balconyjh@gmail.com"},
+]
+dependencies = [
+    "nb-cli>=1.0.5",
+    "aiohttp>=3.8.4",
+    "ssl>=1.16",
+]
+requires-python = "<3.10"
+readme = "README.md"
+license = {text = "GNUv3"}
+
+[build-system]
+requires = ["pdm-pep517>=1.0"]
+build-backend = "pdm.pep517.api"
+
+[tool.nonebot]
+adapters = [
+    { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" },
+    { name = "开黑啦", module_name = "nonebot.adapters.kaiheila" }
+]
+plugins = []
+plugin_dirs = ["src/plugins"]
+builtin_plugins = ["echo"]
