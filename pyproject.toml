@@ -10,9 +10,8 @@ authors = [
 dependencies = [
     "nb-cli>=1.0.5",
     "aiohttp>=3.8.4",
-    "ssl>=1.16",
 ]
-requires-python = "<3.10"
+requires-python = ">=3.8"
 readme = "README.md"
 license = {text = "GNUv3"}
 
