@@ -69,7 +69,7 @@ class Auth:
         }
         self.user_agent = Auth.RIOT_CLIENT_USER_AGENT
 
-    async def aauthenticate(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+    async def authenticate(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """This function is used to authenticate the user."""
 
         session = ClientSession()
@@ -91,8 +91,12 @@ class Auth:
 
         data = {"type": "auth", "username": username, "password": password, "remember": True}
 
-        async with session.post('https://auth.riotgames.com/api/v1/authorization',
-                                json=data, headers=self._headers, cookies=cookies['cookie']) as response:
+        async with session.post(
+                'https://auth.riotgames.com/api/v1/authorization',
+                json=data,
+                headers=self._headers,
+                cookies=cookies['cookie']
+        ) as response:
             data = await response.json()
             for cookie in response.cookies.items():
                 cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
