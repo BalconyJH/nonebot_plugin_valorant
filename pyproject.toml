@@ -10,6 +10,7 @@ authors = [
 dependencies = [
     "nb-cli>=1.0.5",
     "aiohttp>=3.8.4",
+    "tortoise-orm[asyncpg]>=0.19.3",
 ]
 requires-python = ">=3.8"
 readme = "README.md"
