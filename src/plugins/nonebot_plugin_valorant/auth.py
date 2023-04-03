@@ -22,22 +22,6 @@ def _message(message_key: str) -> str:
     return translator.gettext(message_key)
 
 
-def _extract_tokens(data: str) -> dict:
-    """Extract tokens from data"""
-
-    pattern = re.compile(r'access_token=([\w.-]*)&id_token=([\w.-]*)&expires_in=(\d*)')
-    return pattern.findall(data['response']['parameters']['uri'])[0]
-
-
-def _extract_tokens_from_uri(url: str) -> Optional[Tuple[str, Any]]:
-    try:
-        access_token = url.split("access_token=")[1].split("&scope")[0]
-        token_id = url.split("id_token=")[1].split("&")[0]
-        return access_token, token_id
-    except IndexError as e:
-        raise IndexError('Cookies Invalid') from e
-
-
 # https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites/
 
 FORCED_CIPHERS = [
@@ -80,6 +64,22 @@ class Auth:
         }
         self.user_agent = Auth.RIOT_CLIENT_USER_AGENT
 
+    @staticmethod
+    def _extract_tokens(data: Dict[str, Any]) -> Dict[str, str]:
+        """Extract tokens from data"""
+        pattern = re.compile(r'access_token=([\w.-]*)&id_token=([\w.-]*)&expires_in=(\d*)')
+        access_token, token_id, expires_in = pattern.findall(data['response']['parameters']['uri'])[0]
+        return {"access_token": access_token, "token_id": token_id, "expires_in": expires_in}
+
+    @staticmethod
+    def _extract_tokens_from_uri(url: str) -> Optional[Tuple[str, Any]]:
+        try:
+            access_token = url.split("access_token=")[1].split("&scope")[0]
+            token_id = url.split("id_token=")[1].split("&")[0]
+            return access_token, token_id
+        except IndexError as e:
+            raise IndexError('Invalid cookies') from e
+
     async def authenticate(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """This function is used to authenticate the user."""
 
@@ -102,7 +102,7 @@ class Auth:
 
         data = {"type": "auth", "username": username, "password": password, "remember": True}
 
-        async with session.post(
+        async with session.put(
                 'https://auth.riotgames.com/api/v1/authorization',
                 json=data,
                 headers=self._headers,
@@ -115,32 +115,37 @@ class Auth:
         await session.close()
 
         if data['type'] == 'response':
-            response = _extract_tokens(data)
-            access_token = response[0]
-            token_id = response[1]
+            response = self._extract_tokens(data)
+            access_token = response['access_token']
+            token_id = response['token_id']
 
             expiry_token = datetime.now() + timedelta(minutes=59)
             cookies['expiry_token'] = int(datetime.timestamp(expiry_token))
 
-            return {'auth': 'response', 'data': {'cookie': cookies, 'access_token': access_token, 'token_id': token_id}}
-
+            return {
+                'auth': 'response',
+                'data': {
+                    'cookie': cookies,
+                    'access_token': access_token,
+                    'token_id': token_id
+                }
+            }
         elif data['type'] == 'multifactor':
-
             if response.status == 429:
                 raise AuthenticationError(_message("RATELIMIT, Please wait a few minutes and try again."))
 
-            label_modal = _message('INPUT_2FA_CODE')
-            WaitFor2FA = {"auth": "2fa", "cookie": cookies, 'label': label_modal}
-
-            if data['multifactor']['method'] == 'email':
-                WaitFor2FA[
-                    'message'
-                ] = f"{_message('2FA_TO_EMAIL', 'Riot sent a code to')} {data['multifactor']['email']}"
-                return WaitFor2FA
-
-            raise UnSupportedLogin(_message("Unsupported 2FA method"))
-
-        raise AuthenticationError(_message("Your username or password may be incorrect!"))
+            method = data['multifactor']['method']
+            if method == 'email':
+                return {
+                    "auth": "2fa",
+                    "cookie": cookies,
+                    'label': _message('INPUT_2FA_CODE'),
+                    'message': f"{_message('2FA_TO_EMAIL', 'Riot sent a code to')} {data['multifactor']['email']}",
+                }
+            else:
+                raise UnSupportedLogin(_message("Unsupported 2FA method"))
+        else:
+            raise AuthenticationError(_message("Your username or password may be incorrect!"))
 
     async def get_entitlements_token(self, access_token: str) -> Optional[str]:
         """This function is used to get the entitlements token."""
@@ -239,7 +244,7 @@ class Auth:
                 cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
 
             uri = data['response']['parameters']['uri']
-            access_token, token_id = _extract_tokens_from_uri(uri)
+            access_token, token_id = self._extract_tokens_from_uri(uri)
 
             return {'auth': 'response', 'data': {'cookie': cookies, 'access_token': access_token, 'token_id': token_id}}
 
@@ -281,7 +286,7 @@ class Auth:
 
         await session.close()
 
-        accessToken, tokenId = _extract_tokens_from_uri(data)
+        accessToken, tokenId = self._extract_tokens_from_uri(data)
         entitlements_token = await self.get_entitlements_token(accessToken)
 
         return new_cookies, accessToken, entitlements_token
@@ -346,7 +351,7 @@ class Auth:
         for cookie in r.cookies.items():
             new_cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
 
-        accessToken, tokenID = _extract_tokens_from_uri(await r.text())
+        accessToken, tokenID = self._extract_tokens_from_uri(await r.text())
         entitlements_token = await self.get_entitlements_token(accessToken)
 
         return {
