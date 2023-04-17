@@ -1,52 +1,67 @@
+import nonebot
 from nonebot import Bot
+from nonebot.adapters.onebot.v11 import Adapter
+from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
+from typing import Union
+from nonebot.exception import FinishedException
 
 
-class NotOwner(Bot.sent):
-    """当非机器人所有者使用命令时，引发此异常。"""
-
-    pass
-
-
-class BadArgument(Bot.sent):
-    """当无法找到命令的参数时引发此异常。"""
-
-    pass
+async def send_error_msg(bot: Bot, event: Union[GroupMessageEvent, PrivateMessageEvent], error_message: str):
+    if isinstance(event, PrivateMessageEvent):
+        if event.sub_type == "group":
+            raise FinishedException
+        return
+    await bot.send(event, error_message)
 
 
-class BotError(Bot.sent):
-    """所有由机器人引发的异常的基类。"""
-
-    pass
-
-
-class ResponseError(Bot.sent):
-    """每当Riot服务器返回空响应时引发此异常。"""
+class NotOwner:
+    """Raised when a command is used by a user who is not the owner of the bot."""
 
     pass
 
 
-class HandshakeError(Bot.sent):
-    """每当尝试与本地Riot服务器通信时遇到问题时引发此异常。"""
+class BadArgument:
+    """Raised when a command's argument could not be found."""
 
     pass
 
 
-class AuthenticationError(Bot.sent):
-    """每当尝试与Riot服务器进行身份验证时遇到问题时引发此异常。"""
+class ValorantBotError:
+    """base class for all errors raised by the bot"""
 
     pass
 
 
-class DatabaseError(Bot.sent):
-    """每当尝试访问数据库时遇到问题时引发此异常。"""
+# https://github.com/colinhartigan/valclient.py/blob/0dcff9e384943a2889e6b3f8e71781c9fc950bce/src/valclient/exceptions.py#L1
 
-    # def __init__(self, message: str):
-    #     super().__init__(message)
-    #     logger.error(message)
+
+class ResponseError:
+    """
+    Raised whenever an empty response is given by the Riot server.
+    """
+
     pass
 
 
-class UnSupportedLogin(Bot.sent):
-    """每当尝试使用不受支持的登录方式时引发此异常。"""
+class HandshakeError:
+    """
+    Raised whenever there's a problem while attempting to communicate with the local Riot server.
+    """
+
+    pass
+
+
+class AuthenticationError(Exception):
+    """
+    Raised whenever there's a problem while attempting to authenticate with the Riot server.
+    """
+
+    pass
+
+
+class DatabaseError:
+    """
+    Raised whenever there's a problem while attempting to access the database.
+    """
 
     pass

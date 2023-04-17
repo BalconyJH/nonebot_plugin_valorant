@@ -2,20 +2,23 @@ import json
 import re
 import ssl
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, Any, Dict
+from typing import Optional, Tuple, Any, Dict, Union
 
 import aiohttp as aiohttp
+import nonebot
 import urllib3.exceptions
 
 from utils import Translator
-from utils.errors import AuthenticationError, UnSupportedLogin
+from utils.errors import send_error_msg, AuthenticationError
+from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 translator = Translator()
+Bot = nonebot.get_bot()
 
 
-def _message(message_key: str) -> str:
+def message_translator(message_key: str) -> str:
     """
     获取指定消息键的翻译文本。
     """
@@ -132,26 +135,23 @@ class Auth:
             }
         elif data['type'] == 'multifactor':
             if response.status == 429:
-                raise AuthenticationError(_message("RATELIMIT, Please wait a few minutes and try again."))
+                raise AuthenticationError(message_translator("RATELIMIT, Please wait a few minutes and try again."))
 
             method = data['multifactor']['method']
             if method == 'email':
                 return {
                     "auth": "2fa",
                     "cookie": cookies,
-                    'label': _message('INPUT_2FA_CODE'),
-                    'message': f"{_message('2FA_TO_EMAIL', 'Riot sent a code to')} {data['multifactor']['email']}",
+                    'label': message_translator('INPUT_2FA_CODE'),
+                    'message': f"{message_translator('2FA_TO_EMAIL')} {data['multifactor']['email']}",
                 }
             else:
-                raise UnSupportedLogin(_message("Unsupported 2FA method"))
+                raise AuthenticationError(message_translator("Unsupported 2FA method"))
         else:
-            raise AuthenticationError(_message("Your username or password may be incorrect!"))
+            raise AuthenticationError(message_translator("Your username or password may be incorrect!"))
 
     async def get_entitlements_token(self, access_token: str) -> Optional[str]:
         """This function is used to get the entitlements token."""
-
-        # language
-        local_response = self.local_response()
 
         session = ClientSession()
 
@@ -163,16 +163,13 @@ class Auth:
         await session.close()
         try:
             entitlements_token = data['entitlements_token']
-        except KeyError:
-            raise AuthenticationError(local_response.get('COOKIES_EXPIRED', 'Cookies is expired, plz /login again!'))
+        except KeyError as e:
+            raise AuthenticationError(message_translator('COOKIES_EXPIRED')) from e
         else:
             return entitlements_token
 
     async def get_userinfo(self, access_token: str) -> Tuple[str, str, str]:
         """This function is used to get the user info."""
-
-        # language
-        local_response = self.local_response()
 
         session = ClientSession()
 
@@ -186,17 +183,17 @@ class Auth:
             puuid = data['sub']
             name = data['acct']['game_name']
             tag = data['acct']['tag_line']
-        except KeyError:
+        except KeyError as e:
             raise AuthenticationError(
-                local_response.get('NO_NAME_TAG', 'This user hasn\'t created a name or tagline yet.'))
+                message_translator(
+                    'NO_NAME_TAG',
+                )
+            ) from e
         else:
             return puuid, name, tag
 
     async def get_region(self, access_token: str, token_id: str) -> str:
         """This function is used to get the region."""
-
-        # language
-        local_response = self.local_response()
 
         session = ClientSession()
 
@@ -214,16 +211,13 @@ class Auth:
             region = data['affinities']['live']
         except KeyError:
             raise AuthenticationError(
-                local_response.get('REGION_NOT_FOUND', 'An unknown error occurred, plz `/login` again')
+                message_translator('REGION_NOT_FOUND')
             )
         else:
             return region
 
     async def give2facode(self, code: str, cookies: Dict) -> Dict[str, Any]:
         """This function is used to give the 2FA code."""
-
-        # language
-        local_response = self.local_response()
 
         session = ClientSession()
 
@@ -248,13 +242,10 @@ class Auth:
 
             return {'auth': 'response', 'data': {'cookie': cookies, 'access_token': access_token, 'token_id': token_id}}
 
-        return {'auth': 'failed', 'error': local_response.get('2FA_INVALID_CODE')}
+        return {'auth': 'failed', 'error': message_translator('2FA_INVALID_CODE')}
 
     async def redeem_cookies(self, cookies: Dict) -> Tuple[Dict[str, Any], str, str]:
         """This function is used to redeem the cookies."""
-
-        # language
-        local_response = self.local_response()
 
         if isinstance(cookies, str):
             cookies = json.loads(cookies)
@@ -273,10 +264,10 @@ class Auth:
             data = await r.text()
 
         if r.status != 303:
-            raise AuthenticationError(local_response.get('COOKIES_EXPIRED'))
+            raise AuthenticationError(message_translator('COOKIES_EXPIRED'))
 
         if r.headers['Location'].startswith('/login'):
-            raise AuthenticationError(local_response.get('COOKIES_EXPIRED'))
+            raise AuthenticationError(message_translator('COOKIES_EXPIRED'))
 
         old_cookie = cookies.copy()
 
@@ -286,10 +277,10 @@ class Auth:
 
         await session.close()
 
-        accessToken, tokenId = self._extract_tokens_from_uri(data)
-        entitlements_token = await self.get_entitlements_token(accessToken)
+        access_token, token_id = self._extract_tokens_from_uri(data)
+        entitlements_token = await self.get_entitlements_token(access_token)
 
-        return new_cookies, accessToken, entitlements_token
+        return new_cookies, access_token, entitlements_token
 
     async def temp_auth(self, username: str, password: str) -> Optional[Dict[str, Any]]:
 
@@ -308,18 +299,18 @@ class Auth:
                 'Authorization': f'Bearer {access_token}',
                 'X-Riot-Entitlements-JWT': entitlements_token,
             }
-            user_data = {'puuid': puuid, 'region': region, 'headers': headers, 'player_name': player_name}
-            return user_data
-
-        raise AuthenticationError(self.local_response().get('TEMP_LOGIN_NOT_SUPPORT_2FA'))
+            return {
+                'puuid': puuid,
+                'region': region,
+                'headers': headers,
+                'player_name': player_name,
+            }
+        raise AuthenticationError(message_translator('errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA'))
 
     # next update
 
     async def login_with_cookie(self, cookies: Dict) -> Dict[str, Any]:
         """This function is used to log in with cookie."""
-
-        # language
-        local_response = ResponseLanguage('cookies', self.locale_code)
 
         cookie_payload = f'ssid={cookies};' if cookies.startswith('e') else cookies
 
@@ -342,7 +333,7 @@ class Auth:
         self._headers.pop('cookie')
 
         if r.status != 303:
-            raise AuthenticationError(local_response.get('FAILED'))
+            raise AuthenticationError(message_translator('commands.cookies.FAILED'))
 
         await session.close()
 
@@ -351,13 +342,13 @@ class Auth:
         for cookie in r.cookies.items():
             new_cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
 
-        accessToken, tokenID = self._extract_tokens_from_uri(await r.text())
-        entitlements_token = await self.get_entitlements_token(accessToken)
+        access_token, token_id = self._extract_tokens_from_uri(await r.text())
+        entitlements_token = await self.get_entitlements_token(access_token)
 
         return {
             'cookies': new_cookies,
-            'AccessToken': accessToken,
-            'token_id': tokenID,
+            'AccessToken': access_token,
+            'token_id': token_id,
             'emt': entitlements_token,
         }
 
