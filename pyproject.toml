@@ -10,7 +10,7 @@ authors = [
 dependencies = [
     "nb-cli>=1.0.5",
     "aiohttp>=3.8.4",
-    "tortoise-orm[asyncpg]>=0.19.3",
+    "tortoise-orm>=0.19.3",
     "nonebot2>=2.0.0rc4",
     "nonebot-adapter-onebot>=2.2.2",
 ]

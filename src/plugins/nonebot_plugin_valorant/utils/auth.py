@@ -5,11 +5,10 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple, Any, Dict
 
 import aiohttp as aiohttp
-import nonebot
 import urllib3.exceptions
 
-from .translator import Translator
 from .errors import AuthenticationError
+from .translator import Translator
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -382,7 +381,19 @@ class Auth:
         return new_cookies, access_token, entitlements_token
 
     async def temp_auth(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+        """
+        临时登录，返回包含玩家信息的字典。
 
+        Args:
+            username (str): 玩家账号。
+            password (str): 玩家密码。
+
+        Returns:
+            dict: 包含玩家信息的字典，包括 'puuid', 'region', 'headers', 'player_name' 等字段。
+
+        Raises:
+            AuthenticationError: 如果临时登录不支持双因素身份验证，则会引发异常。
+        """
         authenticate = await self.authenticate(username, password)
         if authenticate['auth'] == 'response':
             access_token = authenticate['data']['access_token']
@@ -391,7 +402,7 @@ class Auth:
             entitlements_token = await self.get_entitlements_token(access_token)
             puuid, name, tag = await self.get_userinfo(access_token)
             region = await self.get_region(access_token, token_id)
-            player_name = f'{name}#{tag}' if tag is not None and tag is not None else 'no_username'
+            player_name = f'{name}#{tag}' if tag and name else 'no_username'
 
             headers = {
                 'Content-Type': 'application/json',
@@ -406,17 +417,29 @@ class Auth:
             }
         raise AuthenticationError(message_translator('errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA'))
 
-    # next update
-
     async def login_with_cookie(self, cookies: Dict) -> Dict[str, Any]:
-        """This function is used to log in with cookie."""
+        """
+        使用 Cookie 进行登录并返回包含访问令牌、令牌 ID 和资格令牌的字典。
 
-        cookie_payload = f'ssid={cookies};' if cookies.startswith('e') else cookies
+        Args:
+            cookies (Dict): 包含 Cookie 的字典。
 
+        Returns:
+            dict: 包含访问令牌、令牌 ID、资格令牌和 Cookie 等字段的字典。
+
+        Raises:
+            AuthenticationError: 如果登录失败，则会引发异常。
+        """
+        # 构建 Cookie 负载
+        cookie_value = cookies.get('cookie', '')
+        cookie_payload = f'ssid={cookie_value};' if cookie_value.startswith('e') else cookie_value
+
+        # 将 Cookie 加入请求头
         self._headers['cookie'] = cookie_payload
 
         session = ClientSession()
 
+        # 发送登录请求
         r = await session.get(
             "https://auth.riotgames.com/authorize"
             "?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in"
@@ -428,20 +451,24 @@ class Auth:
             headers=self._headers,
         )
 
-        # pop cookie
+        # 删除请求头中的 Cookie
         self._headers.pop('cookie')
 
+        # 如果请求返回的状态码不是 303，则登录失败
         if r.status != 303:
             raise AuthenticationError(message_translator('commands.cookies.FAILED'))
 
         await session.close()
 
-        # NEW COOKIE
+        # 获取新 Cookie
         new_cookies = {'cookie': {}}
         for cookie in r.cookies.items():
             new_cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
 
+        # 从响应 URI 中提取访问令牌和令牌 ID
         access_token, token_id = self._extract_tokens_from_uri(await r.text())
+
+        # 获取资格令牌
         entitlements_token = await self.get_entitlements_token(access_token)
 
         return {
