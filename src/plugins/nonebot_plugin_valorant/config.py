@@ -1,12 +1,16 @@
-from typing import Optional
+from typing import Optional, Union, List
 
 from nonebot import get_driver
 from pydantic import BaseSettings, Extra
 
 
 class Config(BaseSettings, extra=Extra.ignore):
-    language_type: str = "zh_CN"
-    database: Optional[str] = None
+    valorant_language_type: str = "zh_CN"
+    valorant_database: Optional[str] = None
+    valorant_proxies: Optional[str] = None
+    valorant_timeout: int = 30
+    valorant_to_me: bool = True
+    valorant_command: Union[str, List[str]] = ""
 
 
 global_config = get_driver().config

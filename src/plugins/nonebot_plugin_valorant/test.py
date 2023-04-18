@@ -1,7 +1,9 @@
-from nonebot import  on_command
+import sqlite3
+conn = sqlite3.connect('valorant.db')
 
-test = on_command("test")
+cursor = conn.cursor()
+cursor.execute('create table if not exists user (id varchar(20) primary key, name varchar(20))')
+cursor.execute('insert into user (id, name) values (\'1\', \'Michael\')')
 
-@test.handle()
-async def test_handle(bot, event):
-    await test.finish("test")
+conn.commit()
+conn.close()
