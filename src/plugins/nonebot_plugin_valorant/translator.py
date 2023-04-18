@@ -75,15 +75,16 @@ def set_interaction_locale(locale: Optional[str]) -> None:
 
 def get_valorant_locale() -> str:
     """Get the locale for valorant api"""
-    valorant_locale = valorant_locale_overwrite.get(str(_valorant_current_locale.get()), "en-US")
-    return valorant_locale
+    return valorant_locale_overwrite.get(
+        str(_valorant_current_locale.get()), "en-US"
+    )
 
 
 def set_valorant_locale(locale: Optional[str]) -> None:
     """Set the locale for valorant api"""
 
     language_files = os.listdir('languages')
-    locale_json = str(locale) + '.json'
+    locale_json = f'{str(locale)}.json'
     if locale_json not in language_files:
         _valorant_current_locale.set("en-US")
     _valorant_current_locale.set(locale)
