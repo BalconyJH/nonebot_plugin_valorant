@@ -1,31 +1,30 @@
 from tortoise.fields.data import BooleanField, CharField, IntField, TextField, FloatField
+
 from tortoise.models import Model
 
 
 class BaseModel(Model):
     @classmethod
-    def get_(cls, *args, **kwargs):
-        super().get(*args, **kwargs)
-
-    @classmethod
-    def get(cls, **kwargs):
+    def filter(cls, **kwargs):
+        """返回符合给定条件的模型实例的 QuerySet 对象"""
         return cls.filter(**kwargs)
 
     @classmethod
-    async def add(cls, **kwargs):
-        puuid = kwargs.get("puuid")
-        if not puuid:
-            raise ValueError("puuid is required")
-
-        if await cls.filter(puuid=puuid).exists():
-            return False
-
-        await cls.create(**kwargs)
-        return True
+    async def create(cls, **kwargs):
+        """创建一个新的模型实例"""
+        if puuid := kwargs.get("puuid"):
+            return (
+                None
+                if await cls.filter(puuid=puuid).exists()
+                else await cls.create(**kwargs)
+            )
+        else:
+            raise ValueError("puuid 是必需的")
 
     @classmethod
     async def delete(cls, **kwargs):
-        query = cls.get(**kwargs)
+        """删除符合给定条件的模型实例"""
+        query = cls.filter(**kwargs)
         if await query.exists():
             await query.delete()
             return True
@@ -33,7 +32,8 @@ class BaseModel(Model):
 
     @classmethod
     async def update(cls, q, **kwargs):
-        query = cls.get(**q)
+        """更新符合给定条件的模型实例"""
+        query = cls.filter(**q)
         if await query.exists():
             await query.update(**kwargs)
             return True

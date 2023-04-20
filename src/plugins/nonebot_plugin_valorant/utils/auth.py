@@ -25,62 +25,104 @@ def message_translator(message_key: str) -> str:
 # https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites/
 
 FORCED_CIPHERS = [
-    'ECDHE-ECDSA-AES256-GCM-SHA384',
-    'ECDHE-ECDSA-AES128-GCM-SHA256',
-    'ECDHE-ECDSA-CHACHA20-POLY1305',
-    'ECDHE-RSA-AES128-GCM-SHA256',
-    'ECDHE-RSA-CHACHA20-POLY1305',
-    'ECDHE-RSA-AES128-SHA256',
-    'ECDHE-RSA-AES128-SHA',
-    'ECDHE-RSA-AES256-SHA',
-    'ECDHE-ECDSA-AES128-SHA256',
-    'ECDHE-ECDSA-AES128-SHA',
-    'ECDHE-ECDSA-AES256-SHA',
-    'ECDHE+AES128',
-    'ECDHE+AES256',
-    'ECDHE+3DES',
-    'RSA+AES128',
-    'RSA+AES256',
-    'RSA+3DES',
+    "ECDHE-ECDSA-AES256-GCM-SHA384",
+    "ECDHE-ECDSA-AES128-GCM-SHA256",
+    "ECDHE-ECDSA-CHACHA20-POLY1305",
+    "ECDHE-RSA-AES128-GCM-SHA256",
+    "ECDHE-RSA-CHACHA20-POLY1305",
+    "ECDHE-RSA-AES128-SHA256",
+    "ECDHE-RSA-AES128-SHA",
+    "ECDHE-RSA-AES256-SHA",
+    "ECDHE-ECDSA-AES128-SHA256",
+    "ECDHE-ECDSA-AES128-SHA",
+    "ECDHE-ECDSA-AES256-SHA",
+    "ECDHE+AES128",
+    "ECDHE+AES256",
+    "ECDHE+3DES",
+    "RSA+AES128",
+    "RSA+AES256",
+    "RSA+3DES",
 ]
 
 
 class ClientSession(aiohttp.ClientSession):
     def __init__(self, *args, **kwargs):
+        # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ctx.minimum_version = ssl.TLSVersion.TLSv1_3
-        ctx.set_ciphers(':'.join(FORCED_CIPHERS))
-        super().__init__(*args, **kwargs, cookie_jar=aiohttp.CookieJar(), connector=aiohttp.TCPConnector(ssl=ctx))
+
+        # 设置TLS加密算法为FORCED_CIPHERS中的算法
+        ctx.set_ciphers(":".join(FORCED_CIPHERS))
+
+        # 调用父类的构造函数，传入参数
+        super().__init__(
+            *args,
+            **kwargs,
+            # 初始化CookieJar和TCPConnector对象，同时传入ssl上下文
+            cookie_jar=aiohttp.CookieJar(),
+            connector=aiohttp.TCPConnector(ssl=ctx),
+        )
 
 
 class Auth:
-    RIOT_CLIENT_USER_AGENT = "RiotClient/60.0.6.4770705.4749685 rso-auth (Windows;10;;Professional, x64)"
+    RIOT_CLIENT_USER_AGENT = (
+        "RiotClient/60.0.6.4770705.4749685 rso-auth (Windows;10;;Professional, x64)"
+    )
 
     def __init__(self) -> None:
         self._headers: Dict = {
-            'Content-Type': 'application/json',
-            'User-Agent': Auth.RIOT_CLIENT_USER_AGENT,
-            'Accept': 'application/json, text/plain, */*',
+            "Content-Type": "application/json",
+            "User-Agent": Auth.RIOT_CLIENT_USER_AGENT,
+            "Accept": "application/json, text/plain, */*",
         }
         self.user_agent = Auth.RIOT_CLIENT_USER_AGENT
 
     @staticmethod
     def _extract_tokens(data: Dict[str, Any]) -> Dict[str, str]:
-        """Extract tokens from data"""
-        pattern = re.compile(r'access_token=([\w.-]*)&id_token=([\w.-]*)&expires_in=(\d*)')
-        access_token, token_id, expires_in = pattern.findall(data['response']['parameters']['uri'])[0]
-        return {"access_token": access_token, "token_id": token_id, "expires_in": expires_in}
+        """
+        从数据中提取令牌
+
+        Args:
+            data: 数据字典，包含响应数据
+
+        Returns:
+            一个包含access_token、token_id和expires_in字段的字典
+        """
+        pattern = re.compile(
+            r"access_token=([\w.-]*)&id_token=([\w.-]*)&expires_in=(\d*)"
+        )
+        access_token, token_id, expires_in = pattern.findall(
+            data["response"]["parameters"]["uri"]
+        )[0]
+
+        return {
+            "access_token": access_token,
+            "token_id": token_id,
+            "expires_in": expires_in,
+        }
 
     @staticmethod
     def _extract_tokens_from_uri(url: str) -> Optional[Tuple[str, Any]]:
+        """
+        从URL中提取访问令牌和ID令牌
+
+        Args:
+            url: 包含访问令牌和ID令牌的URL字符串
+
+        Returns:
+            一个包含访问令牌和ID令牌的元组，如果URL不合法则返回None
+        """
         try:
             access_token = url.split("access_token=")[1].split("&scope")[0]
             token_id = url.split("id_token=")[1].split("&")[0]
+
             return access_token, token_id
         except IndexError as e:
-            raise IndexError('Invalid cookies') from e
+            raise IndexError("Invalid cookies") from e
 
-    async def authenticate(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+    async def authenticate(
+            self, username: str, password: str
+    ) -> Optional[Dict[str, Any]]:
         """用于认证用户的函数。
 
         Args:
@@ -103,68 +145,76 @@ class Auth:
             "nonce": "1",
             "redirect_uri": "https://playvalorant.com/opt_in",
             "response_type": "token id_token",
-            'scope': 'account openid',
+            "scope": "account openid",
         }
 
         # 发送初始授权请求。
-        response = await session.post('https://auth.riotgames.com/api/v1/authorization',
-                                      json=data, headers=self._headers)
+        response = await session.post(
+            "https://auth.riotgames.com/api/v1/authorization",
+            json=data,
+            headers=self._headers,
+        )
 
         # 准备授权请求的 cookies。
-        cookies = {'cookie': {}}
+        cookies = {"cookie": {}}
         for cookie in response.cookies.items():
-            cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
+            cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         # 准备身份验证请求的数据。
-        data = {"type": "auth", "username": username, "password": password, "remember": True}
+        data = {
+            "type": "auth",
+            "username": username,
+            "password": password,
+            "remember": True,
+        }
 
         # 发送身份验证请求。
         async with session.put(
-                'https://auth.riotgames.com/api/v1/authorization',
+                "https://auth.riotgames.com/api/v1/authorization",
                 json=data,
                 headers=self._headers,
-                cookies=cookies['cookie']
+                cookies=cookies["cookie"],
         ) as response:
             data = await response.json()
             for cookie in response.cookies.items():
-                cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
+                cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         # 关闭会话。
         await session.close()
 
         # 处理身份验证响应。
-        if data['type'] == 'response':
+        if data["type"] == "response":
             # 如果身份验证成功，则从响应中提取令牌。
             response = self._extract_tokens(data)
-            access_token = response['access_token']
-            token_id = response['token_id']
+            access_token = response["access_token"]
+            token_id = response["token_id"]
 
             # 设置令牌的到期时间。
             expiry_token = datetime.now() + timedelta(minutes=59)
-            cookies['expiry_token'] = int(datetime.timestamp(expiry_token))
+            cookies["expiry_token"] = int(datetime.timestamp(expiry_token))
 
             # 返回认证数据。
             return {
-                'auth': 'response',
-                'data': {
-                    'cookie': cookies,
-                    'access_token': access_token,
-                    'token_id': token_id
-                }
+                "auth": "response",
+                "data": {
+                    "cookie": cookies,
+                    "access_token": access_token,
+                    "token_id": token_id,
+                },
             }
-        elif data['type'] == 'multifactor':
+        elif data["type"] == "multifactor":
             if response.status == 429:
                 # 如果用户发送了太多请求，请引发 AuthenticationError。
                 raise AuthenticationError(message_translator("RATELIMIT，请等待几分钟并重试。"))
 
-            method = data['multifactor']['method']
-            if method == 'email':
+            method = data["multifactor"]["method"]
+            if method == "email":
                 # 如果身份验证需要基于电子邮件的 2FA 代码，则返回必要的数据。
                 return {
                     "auth": "2fa",
                     "cookie": cookies,
-                    'label': message_translator('INPUT_2FA_CODE'),
-                    'message': f"{message_translator('2FA_TO_EMAIL')} {data['multifactor']['email']}",
+                    "label": message_translator("INPUT_2FA_CODE"),
+                    "message": f"{message_translator('2FA_TO_EMAIL')} {data['multifactor']['email']}",
                 }
             else:
                 # 如果身份验证需要基于不支持的 2FA 方法，则引发 AuthenticationError。
@@ -179,16 +229,23 @@ class Auth:
 
         session = ClientSession()
 
-        headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {access_token}'}
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        }
 
-        async with session.post('https://entitlements.auth.riotgames.com/api/token/v1', headers=headers, json={}) as r:
+        async with session.post(
+                "https://entitlements.auth.riotgames.com/api/token/v1",
+                headers=headers,
+                json={},
+        ) as r:
             data = await r.json()
 
         await session.close()
         try:
-            entitlements_token = data['entitlements_token']
+            entitlements_token = data["entitlements_token"]
         except KeyError as e:
-            raise AuthenticationError(message_translator('COOKIES_EXPIRED')) from e
+            raise AuthenticationError(message_translator("COOKIES_EXPIRED")) from e
         else:
             return entitlements_token
 
@@ -209,10 +266,15 @@ class Auth:
         session = ClientSession()
 
         # 准备请求头。
-        headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {access_token}'}
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        }
 
         # 发送用户信息请求。
-        async with session.post('https://auth.riotgames.com/userinfo', headers=headers, json={}) as r:
+        async with session.post(
+                "https://auth.riotgames.com/userinfo", headers=headers, json={}
+        ) as r:
             data = await r.json()
 
         # 关闭会话。
@@ -220,14 +282,14 @@ class Auth:
 
         # 从响应中提取用户信息。
         try:
-            puuid = data['sub']
-            name = data['acct']['game_name']
-            tag = data['acct']['tag_line']
+            puuid = data["sub"]
+            name = data["acct"]["game_name"]
+            tag = data["acct"]["tag_line"]
         except KeyError as e:
             # 如果无法从响应中提取所需的用户信息，请引发 AuthenticationError。
             raise AuthenticationError(
                 message_translator(
-                    '无法从响应中提取所需的用户信息',
+                    "无法从响应中提取所需的用户信息",
                 )
             ) from e
         else:
@@ -252,14 +314,19 @@ class Auth:
         session = ClientSession()
 
         # 准备请求头。
-        headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {access_token}'}
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        }
 
         # 准备请求体。
         body = {"id_token": token_id}
 
         # 发送获取区域请求。
         async with session.put(
-                'https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant', headers=headers, json=body
+                "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant",
+                headers=headers,
+                json=body,
         ) as r:
             data = await r.json()
 
@@ -268,17 +335,17 @@ class Auth:
 
         # 从响应中提取区域信息。
         try:
-            region = data['affinities']['live']
+            region = data["affinities"]["live"]
         except KeyError as e:
             # 如果无法从响应中提取所需的区域信息，请引发 AuthenticationError。
-            raise AuthenticationError(
-                message_translator('无法从响应中提取所需的区域信息')
-            ) from e
+            raise AuthenticationError(message_translator("无法从响应中提取所需的区域信息")) from e
         else:
             # 返回区域字符串。
             return region
 
-    async def get_2fa_code(self, code: str, cookies: Dict) -> Dict[str, Any]:
+    async def get_2fa_code(
+            self, code: str, cookies: Dict
+    ) -> Dict[str, Any]:
         """用于输入 2FA 验证码的方法。
 
         Args:
@@ -299,8 +366,10 @@ class Auth:
 
         # 发送输入 2FA 验证码请求。
         async with session.put(
-                'https://auth.riotgames.com/api/v1/authorization', headers=self._headers, json=data,
-                cookies=cookies['cookie']
+                "https://auth.riotgames.com/api/v1/authorization",
+                headers=self._headers,
+                json=data,
+                cookies=cookies["cookie"],
         ) as r:
             data = await r.json()
 
@@ -308,18 +377,28 @@ class Auth:
         await session.close()
 
         # 如果成功输入 2FA 验证码，则返回包含身份验证信息的字典。
-        if data['type'] == 'response':
-            cookies = {'cookie': {}}
+        if data["type"] == "response":
+            cookies = {"cookie": {}}
             for cookie in r.cookies.items():
-                cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
+                cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
-            uri = data['response']['parameters']['uri']
+            uri = data["response"]["parameters"]["uri"]
             access_token, token_id = self._extract_tokens_from_uri(uri)
 
-            return {'auth': 'response', 'data': {'cookie': cookies, 'access_token': access_token, 'token_id': token_id}}
+            return {
+                "auth": "response",
+                "data": {
+                    "cookie": cookies,
+                    "access_token": access_token,
+                    "token_id": token_id,
+                },
+            }
+        # 超时判断
+        if data["type"] == "multifactor":
+            return {"auth": "failed", "error": message_translator("输入的 2FA 验证码因超时失效")}
 
         # 否则引发 AuthenticationError。
-        return {'auth': 'failed', 'error': message_translator('输入的 2FA 验证码无效')}
+        return {"auth": "failed", "error": message_translator("输入的 2FA 验证码无效")}
 
     async def redeem_cookies(self, cookies: Dict) -> Tuple[Dict[str, Any], str, str]:
         """
@@ -343,8 +422,8 @@ class Auth:
         session = ClientSession()
 
         # 取出 cookies
-        if 'cookie' in cookies:
-            cookies = cookies['cookie']
+        if "cookie" in cookies:
+            cookies = cookies["cookie"]
 
         # 向 Riot 的验证网站发送请求
         async with session.get(
@@ -358,18 +437,18 @@ class Auth:
 
         # 如果 HTTP 状态码不为 303 或者响应的 Location 以 /login 开头则说明 cookies 过期，抛出 AuthenticationError
         if r.status != 303:
-            raise AuthenticationError(message_translator('COOKIES_EXPIRED'))
+            raise AuthenticationError(message_translator("COOKIES_EXPIRED"))
 
-        if r.headers['Location'].startswith('/login'):
-            raise AuthenticationError(message_translator('COOKIES_EXPIRED'))
+        if r.headers["Location"].startswith("/login"):
+            raise AuthenticationError(message_translator("COOKIES_EXPIRED"))
 
         # 复制原有 cookies
         old_cookie = cookies.copy()
 
         # 更新 cookies
-        new_cookies = {'cookie': old_cookie}
+        new_cookies = {"cookie": old_cookie}
         for cookie in r.cookies.items():
-            new_cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
+            new_cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         # 关闭 HTTP 会话
         await session.close()
@@ -395,27 +474,29 @@ class Auth:
             AuthenticationError: 如果临时登录不支持双因素身份验证，则会引发异常。
         """
         authenticate = await self.authenticate(username, password)
-        if authenticate['auth'] == 'response':
-            access_token = authenticate['data']['access_token']
-            token_id = authenticate['data']['token_id']
+        if authenticate["auth"] == "response":
+            access_token = authenticate["data"]["access_token"]
+            token_id = authenticate["data"]["token_id"]
 
             entitlements_token = await self.get_entitlements_token(access_token)
             puuid, name, tag = await self.get_userinfo(access_token)
             region = await self.get_region(access_token, token_id)
-            player_name = f'{name}#{tag}' if tag and name else 'no_username'
+            player_name = f"{name}#{tag}" if tag and name else "no_username"
 
             headers = {
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {access_token}',
-                'X-Riot-Entitlements-JWT': entitlements_token,
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+                "X-Riot-Entitlements-JWT": entitlements_token,
             }
             return {
-                'puuid': puuid,
-                'region': region,
-                'headers': headers,
-                'player_name': player_name,
+                "puuid": puuid,
+                "region": region,
+                "headers": headers,
+                "player_name": player_name,
             }
-        raise AuthenticationError(message_translator('errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA'))
+        raise AuthenticationError(
+            message_translator("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
+        )
 
     async def login_with_cookie(self, cookies: Dict) -> Dict[str, Any]:
         """
@@ -431,11 +512,13 @@ class Auth:
             AuthenticationError: 如果登录失败，则会引发异常。
         """
         # 构建 Cookie 负载
-        cookie_value = cookies.get('cookie', '')
-        cookie_payload = f'ssid={cookie_value};' if cookie_value.startswith('e') else cookie_value
+        cookie_value = cookies.get("cookie", "")
+        cookie_payload = (
+            f"ssid={cookie_value};" if cookie_value.startswith("e") else cookie_value
+        )
 
         # 将 Cookie 加入请求头
-        self._headers['cookie'] = cookie_payload
+        self._headers["cookie"] = cookie_payload
 
         session = ClientSession()
 
@@ -452,18 +535,18 @@ class Auth:
         )
 
         # 删除请求头中的 Cookie
-        self._headers.pop('cookie')
+        self._headers.pop("cookie")
 
         # 如果请求返回的状态码不是 303，则登录失败
         if r.status != 303:
-            raise AuthenticationError(message_translator('commands.cookies.FAILED'))
+            raise AuthenticationError(message_translator("commands.cookies.FAILED"))
 
         await session.close()
 
         # 获取新 Cookie
-        new_cookies = {'cookie': {}}
+        new_cookies = {"cookie": {}}
         for cookie in r.cookies.items():
-            new_cookies['cookie'][cookie[0]] = str(cookie).split('=')[1].split(';')[0]
+            new_cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         # 从响应 URI 中提取访问令牌和令牌 ID
         access_token, token_id = self._extract_tokens_from_uri(await r.text())
@@ -472,10 +555,10 @@ class Auth:
         entitlements_token = await self.get_entitlements_token(access_token)
 
         return {
-            'cookies': new_cookies,
-            'AccessToken': access_token,
-            'token_id': token_id,
-            'emt': entitlements_token,
+            "cookies": new_cookies,
+            "AccessToken": access_token,
+            "token_id": token_id,
+            "emt": entitlements_token,
         }
 
     async def refresh_token(self, cookies: Dict) -> Tuple[Dict[str, Any], str, str]:

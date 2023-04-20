@@ -1,8 +1,6 @@
 from sysconfig import get_path
 
-from tortoise import Tortoise
-
-from plugins.nonebot_plugin_valorant.database.models import User
+from tortoise import Tortoise, run_async
 
 
 class DB:
@@ -26,9 +24,5 @@ class DB:
         await Tortoise.init(config)
 
         await Tortoise.generate_schemas()
-        await cls.migrate()
-        await cls.refresh_token()
 
-    @classmethod
-    async def insert_user(cls, data: dict) -> None:
-        return await User.create(**data)
+    run_async(init())
