@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from plugins.nonebot_plugin_valorant.config import Config
+from nonebot_plugin_valorant.config import Config
 
 translations_path = Path(__file__).parent.parent / "translations" / f"{Config.language_type}.json"
 

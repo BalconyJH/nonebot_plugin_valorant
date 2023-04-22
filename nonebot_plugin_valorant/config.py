@@ -6,7 +6,7 @@ from pydantic import BaseSettings, Extra
 
 class Config(BaseSettings, extra=Extra.ignore):
     valorant_language_type: str = "zh_CN"
-    valorant_database: Optional[str] = None
+    valorant_database: str
     valorant_proxies: Optional[str] = None
     valorant_timeout: int = 30
     valorant_to_me: bool = True
@@ -15,3 +15,4 @@ class Config(BaseSettings, extra=Extra.ignore):
 
 global_config = get_driver().config
 plugin_config = Config.parse_obj(global_config)
+
