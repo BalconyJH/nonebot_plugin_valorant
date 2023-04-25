@@ -1,6 +1,13 @@
 from sysconfig import get_path
 
 from tortoise import Tortoise, run_async
+from nonebot_plugin_datastore.db import post_db_init
+
+
+@post_db_init
+async def init():
+    # TODO document why this method is empty
+    pass
 
 
 class DB:

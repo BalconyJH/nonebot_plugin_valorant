@@ -1,2 +1,5 @@
 [pypi]
 verify_ssl = false
+
+[python]
+path = "C:\\Users\\BalconyJH\\Documents\\GitHub\\nonebot_plugin_valorant\\.venv\\Scripts\\python.exe"

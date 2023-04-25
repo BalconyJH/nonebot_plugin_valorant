@@ -1,21 +1,20 @@
 import httpx
 from nonebot import on_command as _on_command, require
 from tortoise import Tortoise
-
-from .. import config
+from nonebot_plugin_valorant.config import plugin_config
 
 
 def on_command(cmd, *args, **kwargs):
-    return _on_command(config.valorant_command + cmd, *args, **kwargs)
+    return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
 
 
 def check_proxy():
     """检查代理是否有效"""
-    if config.valorant_proxies:
+    if plugin_config.valorant_proxies:
         try:
             httpx.get(
                 "https://icanhazip.com/",
-                proxies={"all://": config.valorant_proxies},
+                proxies={"all://": plugin_config.valorant_proxies},
                 timeout=2,
             )
         except Exception as e:
@@ -26,7 +25,7 @@ async def check_db():
     """检查数据库是否有效"""
     try:
         await Tortoise.init(
-            db_url=config.valorant_database,  # MySQL连接URL
+            db_url=plugin_config.valorant_database,  # MySQL连接URL
             modules={'models': ['__main__']})
         conn = Tortoise.get_connection('default')
         await conn.execute_query('SELECT 1')
@@ -43,7 +42,7 @@ def on_startup():
     check_db()
 
 
-PROXIES = {"all://": config.valorant_proxies}
+PROXIES = {plugin_config.valorant_proxies}
 
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler  # noqa

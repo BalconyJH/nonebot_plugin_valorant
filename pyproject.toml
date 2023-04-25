@@ -8,12 +8,14 @@ authors = [
     {name = "BalconyJH", email = "balconyjh@gmail.com"},
 ]
 dependencies = [
-    "nb-cli>=1.0.5",
+    "nb-cli>=1.1.2",
     "aiohttp>=3.8.4",
     "tortoise-orm>=0.19.3",
-    "nonebot2>=2.0.0rc4",
+    "nonebot2[fastapi]>=2.0.0rc4",
     "nonebot-adapter-onebot>=2.2.2",
     "aiomysql>=0.1.1",
+    "nonebot-plugin-datastore>=0.6.2",
+    "nonebot-plugin-apscheduler>=0.2.0",
 ]
 requires-python = ">=3.8"
 readme = "README.md"
@@ -26,8 +28,7 @@ build-backend = "pdm.pep517.api"
 [tool.nonebot]
 adapters = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" },
-    { name = "开黑啦", module_name = "nonebot.adapters.kaiheila" }
 ]
 plugins = []
-plugin_dirs = ["src/plugins"]
+plugin_dirs = ["nonebot_plugin_valorant/plugins"]
 builtin_plugins = ["echo"]
