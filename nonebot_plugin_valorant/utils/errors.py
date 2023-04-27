@@ -6,6 +6,17 @@ from nonebot.exception import FinishedException
 
 
 async def send_error_msg(bot: Bot, event: Union[GroupMessageEvent, PrivateMessageEvent], error_message: str):
+    """
+    发送错误消息的异步函数。
+
+    Args:
+        bot (Bot): 机器人对象。
+        event (Union[GroupMessageEvent, PrivateMessageEvent]): 事件对象，可能是 GroupMessageEvent 或 PrivateMessageEvent。
+        error_message (str): 错误消息。
+
+    Returns:
+        None
+    """
     if isinstance(event, PrivateMessageEvent):
         if event.sub_type == "group":
             raise FinishedException
@@ -14,29 +25,32 @@ async def send_error_msg(bot: Bot, event: Union[GroupMessageEvent, PrivateMessag
 
 
 class NotOwner:
-    """Raised when a command is used by a user who is not the owner of the bot."""
+    """
+    当非机器人所有者使用命令时引发的异常。
+    """
 
     pass
 
 
 class BadArgument:
-    """Raised when a command's argument could not be found."""
+    """
+    当找不到命令的参数时引发的异常。
+    """
 
     pass
 
 
 class ValorantBotError:
-    """base class for all errors raised by the bot"""
+    """
+    机器人引发的所有错误的基类。
+    """
 
     pass
 
 
-# https://github.com/colinhartigan/valclient.py/blob/0dcff9e384943a2889e6b3f8e71781c9fc950bce/src/valclient/exceptions.py#L1
-
-
 class ResponseError:
     """
-    Raised whenever an empty response is given by the Riot server.
+    当 Riot 服务器返回空响应时引发的异常。
     """
 
     pass
@@ -44,7 +58,7 @@ class ResponseError:
 
 class HandshakeError:
     """
-    Raised whenever there's a problem while attempting to communicate with the local Riot server.
+    尝试与本地 Riot 服务器通信时出现问题时引发的异常。
     """
 
     pass
@@ -52,7 +66,7 @@ class HandshakeError:
 
 class AuthenticationError(Exception):
     """
-    Raised whenever there's a problem while attempting to authenticate with the Riot server.
+    尝试与 Riot 服务器进行身份验证时出现问题时引发的异常。
     """
 
     pass
@@ -60,7 +74,7 @@ class AuthenticationError(Exception):
 
 class DatabaseError:
     """
-    Raised whenever there's a problem while attempting to access the database.
+    尝试访问数据库时出现问题时引发的异常。
     """
 
     pass

@@ -45,3 +45,9 @@ class Translator:
         """
         return {key: self.gettext(key) for key in message_keys}
 
+
+def message_translator(message_key: str) -> str:
+    """
+    获取指定消息键的翻译文本。
+    """
+    return Translator().gettext(message_key)
