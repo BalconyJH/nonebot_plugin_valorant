@@ -33,7 +33,8 @@ async def _(event: PrivateMessageEvent,
     state["password"] = password
     try:
         result = await cache_user_cookie(username=state["username"], password=state["password"])
-        if result is None:
+        if result == "None":
+            login.finish("连接错误")
             raise AuthenticationError(message_translator("请求错误,请重试"))
 
     except AuthenticationError as e:

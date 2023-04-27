@@ -9,6 +9,7 @@ import urllib3.exceptions
 
 from .errors import AuthenticationError
 from .translator import Translator
+from nonebot_plugin_valorant.config import plugin_config
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
