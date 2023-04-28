@@ -5,15 +5,18 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple, Any, Dict
 
 import aiohttp as aiohttp
+import httpx
 import urllib3.exceptions
 
 from .errors import AuthenticationError
 from .translator import Translator
 from nonebot_plugin_valorant.config import plugin_config
-
+import warnings
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 translator = Translator()
+
+PROXY = plugin_config.valorant_proxies
 
 
 def message_translator(message_key: str) -> str:
@@ -46,6 +49,27 @@ FORCED_CIPHERS = [
 ]
 
 
+class ClientSessionWithProxy(httpx.Client):
+    def __init__(self, proxy=PROXY, *args, **kwargs):
+        # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
+        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_3
+
+        # 设置TLS加密算法为FORCED_CIPHERS中的算法
+        ctx.set_ciphers(":".join(FORCED_CIPHERS))
+
+        # 创建代理设置
+        proxies = {"http": proxy, "https": proxy} if proxy else {}
+        # 调用父类的构造函数，传入参数
+        super().__init__(
+            *args,
+            **kwargs,
+            # 传入ssl上下文和代理设置
+            verify=ctx,
+            proxies=proxies,
+        )
+
+
 class ClientSession(aiohttp.ClientSession):
     def __init__(self, *args, **kwargs):
         # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
@@ -63,6 +87,7 @@ class ClientSession(aiohttp.ClientSession):
             cookie_jar=aiohttp.CookieJar(),
             connector=aiohttp.TCPConnector(ssl=ctx),
         )
+        warnings.warn("The OldClass is deprecated and will be removed in future versions.", DeprecationWarning)
 
 
 class Auth:
@@ -89,9 +114,9 @@ class Auth:
         Returns:
             一个包含access_token、token_id和expires_in字段的字典
         """
-        pattern = re.compile(
-            r"access_token=([\w.-]*)&id_token=([\w.-]*)&expires_in=(\d*)"
-        )
+        pattern = re.compile('access_token=((?:[a-zA-Z]|\d|\.|-|_)*).'
+                             '*id_token=((?:[a-zA-Z]|\d|\.|-|_)*).'
+                             '*expires_in=(\d*)')
         access_token, token_id, expires_in = pattern.findall(
             data["response"]["parameters"]["uri"]
         )[0]
@@ -154,6 +179,7 @@ class Auth:
             "https://auth.riotgames.com/api/v1/authorization",
             json=data,
             headers=self._headers,
+            proxy=PROXY,
         )
 
         # 准备授权请求的 cookies。
@@ -175,6 +201,7 @@ class Auth:
                 json=data,
                 headers=self._headers,
                 cookies=cookies["cookie"],
+                proxy=PROXY,
         ) as response:
             data = await response.json()
             for cookie in response.cookies.items():
@@ -197,6 +224,7 @@ class Auth:
             # 返回认证数据。
             return {
                 "auth": "response",
+                "status": "success",
                 "data": {
                     "cookie": cookies,
                     "access_token": access_token,
@@ -214,8 +242,8 @@ class Auth:
                 return {
                     "auth": "2fa",
                     "cookie": cookies,
-                    "label": message_translator("INPUT_2FA_CODE"),
-                    "message": f"{message_translator('2FA_TO_EMAIL')} {data['multifactor']['email']}",
+                    "status": "wait fot 2fa code",
+                    "email": f"{data['multifactor']['email']}",
                 }
             else:
                 # 如果身份验证需要基于不支持的 2FA 方法，则引发 AuthenticationError。
@@ -226,7 +254,18 @@ class Auth:
 
     @staticmethod
     async def get_entitlements_token(access_token: str) -> Optional[str]:
-        """This function is used to get the entitlements token."""
+        """
+        用于获取权限令牌的静态方法。
+
+        Args:
+            access_token (str): 访问令牌。
+
+        Returns:
+            Optional[str]: 权限令牌，如果不存在则返回 None。
+
+        Raises:
+            AuthenticationError: 如果无法从响应中提取所需的权限令牌。
+        """
 
         session = ClientSession()
 
@@ -344,7 +383,7 @@ class Auth:
             # 返回区域字符串。
             return region
 
-    async def get_2fa_code(
+    async def auth_by_code(
             self, code: str, cookies: Dict
     ) -> Dict[str, Any]:
         """用于输入 2FA 验证码的方法。

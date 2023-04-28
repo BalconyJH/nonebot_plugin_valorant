@@ -8,6 +8,41 @@ engine = create_engine("mysql+pymysql://root:070499@localhost:3306/valorant_bot"
 session = Session(bind=engine)
 
 
+class Base(DeclarativeBase):
+    pass
+
+
+# 定义User模型
+class User(Base):
+    __tablename__ = "user"
+
+    puuid: Mapped[str] = mapped_column(String(255))
+    cookie: Mapped[str] = mapped_column(String(255))
+    access_token: Mapped[str] = mapped_column(String(255))
+    token_id: Mapped[str] = mapped_column(String(255))
+    emt: Mapped[str] = mapped_column(String(255))
+    username: Mapped[str] = mapped_column(String(255))
+    region: Mapped[str] = mapped_column(String(255))
+    expiry_token: Mapped[str] = mapped_column(String(255))
+    qq_uid: Mapped[int] = mapped_column(primary_key=True)
+
+    # group_id: Mapped[str] = mapped_column(String(255))
+
+    def __init__(self, **kw: Any):
+        super().__init__(kw)
+        self._puuid = None
+
+    @property
+    def puuid(self):
+        return self._puuid
+
+    @puuid.setter
+    def puuid(self, value):
+        if not value:
+            raise ValueError("puuid 是必需的")
+        self._puuid = value
+
+
 def add_user(user_info: Dict[str, Any]):
     try:
         user = User()
@@ -49,40 +84,6 @@ def get_all_users() -> List[Dict[str, Any]]:
     return [user.__dict__ for user in users]
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-# 定义User模型
-class User(Base):
-    __tablename__ = "user"
-
-    puuid: Mapped[str] = mapped_column(String(255), primary_key=True, unique=True)
-    cookie: Mapped[str] = mapped_column(String(255))
-    access_token: Mapped[str] = mapped_column(String(255))
-    token_id: Mapped[str] = mapped_column(String(255))
-    emt: Mapped[str] = mapped_column(String(255))
-    username: Mapped[str] = mapped_column(String(255))
-    region: Mapped[str] = mapped_column(String(255))
-    expiry_token: Mapped[str] = mapped_column(String(255))
-    qq_uid: Mapped[str] = mapped_column(String(255))
-    group_id: Mapped[str] = mapped_column(String(255))
-
-    def __init__(self, **kw: Any):
-        super().__init__(kw)
-        self._puuid = None
-
-    @property
-    def puuid(self):
-        return self._puuid
-
-    @puuid.setter
-    def puuid(self, value):
-        if not value:
-            raise ValueError("puuid 是必需的")
-        self._puuid = value
-
-
 def init():
     try:
         Base.metadata.create_all(engine)
@@ -90,5 +91,5 @@ def init():
         print(f"表创建失败: {e}")
 
 
-if __name__ == '__main__':
-    init()
+# if __name__ == '__main__':
+#     init()
