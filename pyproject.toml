@@ -16,6 +16,7 @@ dependencies = [
     "aiomysql>=0.1.1",
     "nonebot-plugin-datastore>=0.6.2",
     "nonebot-plugin-apscheduler>=0.2.0",
+    "cryptography>=40.0.2",
 ]
 requires-python = ">=3.8"
 readme = "README.md"

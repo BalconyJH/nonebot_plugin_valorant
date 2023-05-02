@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, Session
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import String, create_engine
+from sqlalchemy import String, create_engine, Column, func, DateTime
 
 engine = create_engine("mysql+pymysql://root:070499@localhost:3306/valorant_bot")
 session = Session(bind=engine)
@@ -25,11 +25,12 @@ class User(Base):
     region: Mapped[str] = mapped_column(String(255))
     expiry_token: Mapped[str] = mapped_column(String(255))
     qq_uid: Mapped[int] = mapped_column(primary_key=True)
+    timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
     # group_id: Mapped[str] = mapped_column(String(255))
 
     def __init__(self, **kw: Any):
-        super().__init__(kw)
+        super().__init__()
         self._puuid = None
 
     @property

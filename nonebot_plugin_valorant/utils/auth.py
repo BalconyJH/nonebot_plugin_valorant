@@ -224,7 +224,6 @@ class Auth:
             # 返回认证数据。
             return {
                 "auth": "response",
-                "status": "success",
                 "data": {
                     "cookie": cookies,
                     "access_token": access_token,
@@ -242,7 +241,6 @@ class Auth:
                 return {
                     "auth": "2fa",
                     "cookie": cookies,
-                    "status": "wait fot 2fa code",
                     "email": f"{data['multifactor']['email']}",
                 }
             else:

@@ -37,12 +37,19 @@ async def _(event: PrivateMessageEvent,
 
 @login.handle()
 async def _(bot, event: PrivateMessageEvent, state: T_State):
-    if state["result"]["status"] == "wait fot 2fa code":
-        login.got("code", prompt="请输入您的2FA验证码")
-        try:
-            await auth.auth_by_code(code=ArgPlainText("code"), cookies=state["result"]["cookies"])
-        except AuthenticationError as e:
-            await login.reject(f"{e}")
-    elif state["result"]["status"] == "success":
+    if state["result"]["auth"] == "2fa":
+        print(state["result"])
+        login.skip()
+    elif state["result"]["auth"] == "response":
         await login.finish("登录成功")
 
+
+@login.got("code", prompt="请输入您的2FA验证码")
+async def _(bot, event: PrivateMessageEvent, state: T_State, code: str = ArgPlainText("code")):
+    try:
+        result = await auth.auth_by_code(code, cookies=state["result"]["cookie"])
+        state["result"] = result
+        if result == "None":
+            login.finish("连接错误")
+    except AuthenticationError as e:
+        await login.reject(f"{e}")
