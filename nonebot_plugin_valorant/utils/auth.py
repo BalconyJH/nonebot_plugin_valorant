@@ -433,10 +433,10 @@ class Auth:
             }
         # 超时判断
         if data["type"] == "multifactor":
-            return {"auth": "failed", "error": message_translator("输入的 2FA 验证码因超时失效")}
+            raise AuthenticationError(message_translator("输入的 2FA 验证码因超时失效"))
 
         # 否则引发 AuthenticationError。
-        return {"auth": "failed", "error": message_translator("输入的 2FA 验证码无效")}
+        raise AuthenticationError(message_translator("输入的 2FA 验证码无效"))
 
     async def redeem_cookies(self, cookies: Dict) -> Tuple[Dict[str, Any], str, str]:
         """

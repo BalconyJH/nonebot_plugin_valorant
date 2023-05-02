@@ -4,6 +4,8 @@ from nonebot import Bot
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from nonebot.exception import FinishedException
 
+from nonebot_plugin_valorant.utils.translator import message_translator
+
 
 async def send_error_msg(bot: Bot, event: Union[GroupMessageEvent, PrivateMessageEvent], error_message: str):
     """
@@ -24,7 +26,15 @@ async def send_error_msg(bot: Bot, event: Union[GroupMessageEvent, PrivateMessag
     await bot.send(event, error_message)
 
 
-class NotOwner:
+class TranslatableError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return message_translator(self.message)
+
+
+class NotOwner(TranslatableError):
     """
     当非机器人所有者使用命令时引发的异常。
     """
@@ -32,7 +42,7 @@ class NotOwner:
     pass
 
 
-class BadArgument:
+class BadArgument(TranslatableError):
     """
     当找不到命令的参数时引发的异常。
     """
@@ -40,7 +50,7 @@ class BadArgument:
     pass
 
 
-class ValorantBotError:
+class ValorantBotError(TranslatableError):
     """
     机器人引发的所有错误的基类。
     """
@@ -48,7 +58,7 @@ class ValorantBotError:
     pass
 
 
-class ResponseError:
+class ResponseError(TranslatableError):
     """
     当 Riot 服务器返回空响应时引发的异常。
     """
@@ -56,7 +66,7 @@ class ResponseError:
     pass
 
 
-class HandshakeError:
+class HandshakeError(TranslatableError):
     """
     尝试与本地 Riot 服务器通信时出现问题时引发的异常。
     """
@@ -64,7 +74,7 @@ class HandshakeError:
     pass
 
 
-class AuthenticationError(Exception):
+class AuthenticationError(TranslatableError):
     """
     尝试与 Riot 服务器进行身份验证时出现问题时引发的异常。
     """
@@ -72,7 +82,7 @@ class AuthenticationError(Exception):
     pass
 
 
-class DatabaseError:
+class DatabaseError(TranslatableError):
     """
     尝试访问数据库时出现问题时引发的异常。
     """

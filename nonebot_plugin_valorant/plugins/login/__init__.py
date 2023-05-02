@@ -29,16 +29,10 @@ async def _(event: PrivateMessageEvent,
         result = await auth.authenticate(username=state["username"], password=state["password"])
         state["result"] = result
         if result == "None":
-            login.finish("连接错误")
-
+            login.finish("未知错误")
     except AuthenticationError as e:
         await login.reject(f"{e}")
-
-
-@login.handle()
-async def _(bot, event: PrivateMessageEvent, state: T_State):
     if state["result"]["auth"] == "2fa":
-        print(state["result"])
         login.skip()
     elif state["result"]["auth"] == "response":
         await login.finish("登录成功")
@@ -50,6 +44,6 @@ async def _(bot, event: PrivateMessageEvent, state: T_State, code: str = ArgPlai
         result = await auth.auth_by_code(code, cookies=state["result"]["cookie"])
         state["result"] = result
         if result == "None":
-            login.finish("连接错误")
+            login.finish("未知错误")
     except AuthenticationError as e:
         await login.reject(f"{e}")
