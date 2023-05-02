@@ -88,3 +88,8 @@ class DatabaseError(TranslatableError):
     """
 
     pass
+
+
+class FileExistError(TranslatableError(FileExistsError)):
+
+    pass

@@ -172,7 +172,7 @@
       "LOGOUT_EXCEPT": "登出账户发生错误。"
     },
     "API": {
-      "FAILED_ACTIVE": "激活 API 失败",
+      "FAILED_ACTIVE": "初始化 API 失败",
       "REQUEST_FAILED": "API 响应失败！"
     },
     "SETUP_EMOJI": {
