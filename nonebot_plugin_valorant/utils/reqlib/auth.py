@@ -12,6 +12,7 @@ from nonebot_plugin_valorant.utils.errors import AuthenticationError
 from nonebot_plugin_valorant.utils.translator import Translator
 from nonebot_plugin_valorant.config import plugin_config
 import warnings
+
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 translator = Translator()
@@ -87,7 +88,10 @@ class ClientSession(aiohttp.ClientSession):
             cookie_jar=aiohttp.CookieJar(),
             connector=aiohttp.TCPConnector(ssl=ctx),
         )
-        warnings.warn("The OldClass is deprecated and will be removed in future versions.", DeprecationWarning)
+        warnings.warn(
+            "The OldClass is deprecated and will be removed in future versions.",
+            DeprecationWarning,
+        )
 
 
 class Auth:
@@ -114,9 +118,11 @@ class Auth:
         Returns:
             一个包含access_token、token_id和expires_in字段的字典
         """
-        pattern = re.compile('access_token=((?:[a-zA-Z]|\d|\.|-|_)*).'
-                             '*id_token=((?:[a-zA-Z]|\d|\.|-|_)*).'
-                             '*expires_in=(\d*)')
+        pattern = re.compile(
+            "access_token=((?:[a-zA-Z]|\d|\.|-|_)*)."
+            "*id_token=((?:[a-zA-Z]|\d|\.|-|_)*)."
+            "*expires_in=(\d*)"
+        )
         access_token, token_id, expires_in = pattern.findall(
             data["response"]["parameters"]["uri"]
         )[0]
@@ -147,7 +153,7 @@ class Auth:
             raise IndexError("Invalid cookies") from e
 
     async def authenticate(
-            self, username: str, password: str
+        self, username: str, password: str
     ) -> Optional[Dict[str, Any]]:
         """用于认证用户的函数。
 
@@ -197,11 +203,11 @@ class Auth:
 
         # 发送身份验证请求。
         async with session.put(
-                "https://auth.riotgames.com/api/v1/authorization",
-                json=data,
-                headers=self._headers,
-                cookies=cookies["cookie"],
-                proxy=PROXY,
+            "https://auth.riotgames.com/api/v1/authorization",
+            json=data,
+            headers=self._headers,
+            cookies=cookies["cookie"],
+            proxy=PROXY,
         ) as response:
             data = await response.json()
             for cookie in response.cookies.items():
@@ -273,9 +279,9 @@ class Auth:
         }
 
         async with session.post(
-                "https://entitlements.auth.riotgames.com/api/token/v1",
-                headers=headers,
-                json={},
+            "https://entitlements.auth.riotgames.com/api/token/v1",
+            headers=headers,
+            json={},
         ) as r:
             data = await r.json()
 
@@ -311,7 +317,7 @@ class Auth:
 
         # 发送用户信息请求。
         async with session.post(
-                "https://auth.riotgames.com/userinfo", headers=headers, json={}
+            "https://auth.riotgames.com/userinfo", headers=headers, json={}
         ) as r:
             data = await r.json()
 
@@ -362,9 +368,9 @@ class Auth:
 
         # 发送获取区域请求。
         async with session.put(
-                "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant",
-                headers=headers,
-                json=body,
+            "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant",
+            headers=headers,
+            json=body,
         ) as r:
             data = await r.json()
 
@@ -381,9 +387,7 @@ class Auth:
             # 返回区域字符串。
             return region
 
-    async def auth_by_code(
-            self, code: str, cookies: Dict
-    ) -> Dict[str, Any]:
+    async def auth_by_code(self, code: str, cookies: Dict) -> Dict[str, Any]:
         """用于输入 2FA 验证码的方法。
 
         Args:
@@ -404,10 +408,10 @@ class Auth:
 
         # 发送输入 2FA 验证码请求。
         async with session.put(
-                "https://auth.riotgames.com/api/v1/authorization",
-                headers=self._headers,
-                json=data,
-                cookies=cookies["cookie"],
+            "https://auth.riotgames.com/api/v1/authorization",
+            headers=self._headers,
+            json=data,
+            cookies=cookies["cookie"],
         ) as r:
             data = await r.json()
 
@@ -465,11 +469,11 @@ class Auth:
 
         # 向 Riot 的验证网站发送请求
         async with session.get(
-                "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id"
-                "=play"
-                "-valorant-web-prod&response_type=token%20id_token&scope=account%20openid&nonce=1",
-                cookies=cookies,
-                allow_redirects=False,
+            "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id"
+            "=play"
+            "-valorant-web-prod&response_type=token%20id_token&scope=account%20openid&nonce=1",
+            cookies=cookies,
+            allow_redirects=False,
         ) as r:
             data = await r.text()
 

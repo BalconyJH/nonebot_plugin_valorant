@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+
 # Standard
 import json
 from typing import Any, Dict, Mapping, Optional
@@ -13,11 +14,13 @@ import urllib3
 from nonebot_plugin_valorant.utils.errors import HandshakeError, ResponseError
 
 # Local
-from nonebot_plugin_valorant.utils.reqlib.request_res import (base_endpoint,
-                                                              base_endpoint_glz,
-                                                              base_endpoint_shared,
-                                                              region_shard_override,
-                                                              shard_region_override)
+from nonebot_plugin_valorant.utils.reqlib.request_res import (
+    base_endpoint,
+    base_endpoint_glz,
+    base_endpoint_shared,
+    region_shard_override,
+    shard_region_override,
+)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -29,21 +32,21 @@ class EndpointAPI:
         self.auth = Auth()
 
         try:
-            self.headers = self.__build_headers(auth['headers'])
-            self.puuid = auth['puuid']
-            self.region = auth['region']
-            self.player = auth['player_name']
-            self.locale_code = auth.get('locale_code', 'en-US')
+            self.headers = self.__build_headers(auth["headers"])
+            self.puuid = auth["puuid"]
+            self.region = auth["region"]
+            self.player = auth["player_name"]
+            self.locale_code = auth.get("locale_code", "en-US")
             self.__format_region()
             self.__build_urls()
         except Exception as e:
             raise HandshakeError("errors.API.FAILED_ACTIVE") from e
 
         # client platform
-        self.client_platform = 'ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9'
+        self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
 
         # language
-        self.locale_code = 'en-US'
+        self.locale_code = "en-US"
 
     # async def refresh_token(self) -> None:
     # cookies = self.cookie
@@ -51,12 +54,12 @@ class EndpointAPI:
 
     # self.__build_headers()
 
-    def fetch(self, endpoint: str = '/', url: str = 'pd') -> Dict:
+    def fetch(self, endpoint: str = "/", url: str = "pd") -> Dict:
         """fetch data from the api"""
 
         endpoint_url = getattr(self, url)
 
-        r = requests.get(f'{endpoint_url}{endpoint}', headers=self.headers)
+        r = requests.get(f"{endpoint_url}{endpoint}", headers=self.headers)
 
         with contextlib.suppress(Exception):
             data = json.loads(r.text)
@@ -106,7 +109,7 @@ class EndpointAPI:
         Contracts_Fetch
         Get a list of contracts and completion status including match history
         """
-        return self.fetch(endpoint=f'/contracts/v1/contracts/{self.puuid}', url='pd')
+        return self.fetch(endpoint=f"/contracts/v1/contracts/{self.puuid}", url="pd")
 
     # PVP endpoints
 
@@ -115,18 +118,18 @@ class EndpointAPI:
         Content_FetchContent
         Get names and ids for game content such as agents, maps, guns, etc.
         """
-        return self.fetch(endpoint='/content-service/v3/content', url='shared')
+        return self.fetch(endpoint="/content-service/v3/content", url="shared")
 
     def fetch_account_xp(self) -> Mapping[str, Any]:
         """
         AccountXP_GetPlayer
         Get the account level, XP, and XP history for the active player
         """
-        return self.fetch(endpoint=f'/account-xp/v1/players/{self.puuid}', url='pd')
+        return self.fetch(endpoint=f"/account-xp/v1/players/{self.puuid}", url="pd")
 
     def fetch_player_mmr(self, puuid: str = None) -> Mapping[str, Any]:
         puuid = self.__check_puuid(puuid)
-        return self.fetch(endpoint=f'/mmr/v1/players/{puuid}', url='pd')
+        return self.fetch(endpoint=f"/mmr/v1/players/{puuid}", url="pd")
 
     def fetch_name_by_puuid(self, puuid: str = None) -> Mapping[str, Any]:
         """
@@ -139,7 +142,7 @@ class EndpointAPI:
             puuid = [self.__check_puuid()]
         elif type(puuid) is str:
             puuid = [puuid]
-        return self.put(endpoint='/name-service/v2/players', url='pd', body=puuid)
+        return self.put(endpoint="/name-service/v2/players", url="pd", body=puuid)
 
     def fetch_player_loadout(self) -> Mapping[str, Any]:
         """
@@ -147,8 +150,8 @@ class EndpointAPI:
         Get the player's current loadout
         """
         return self.fetch(
-            endpoint=f'/personalization/v2/players/{self.puuid}/playerloadout',
-            url='pd',
+            endpoint=f"/personalization/v2/players/{self.puuid}/playerloadout",
+            url="pd",
         )
 
     def put_player_loadout(self, loadout: Mapping) -> Mapping[str, Any]:
@@ -157,8 +160,8 @@ class EndpointAPI:
         Use the values from `fetch_player_loadout` excluding properties like `subject` and `version.` Loadout changes take effect when starting a new game
         """
         return self.put(
-            endpoint=f'/personalization/v2/players/{self.puuid}/playerloadout',
-            url='pd',
+            endpoint=f"/personalization/v2/players/{self.puuid}/playerloadout",
+            url="pd",
             body=loadout,
         )
 
@@ -169,14 +172,14 @@ class EndpointAPI:
         Store_GetOffers
         Get prices for all store items
         """
-        return self.fetch('/store/v1/offers/', url='pd')
+        return self.fetch("/store/v1/offers/", url="pd")
 
     def store_fetch_storefront(self) -> Mapping[str, Any]:
         """
         Store_GetStorefrontV2
         Get the currently available items in the store
         """
-        return self.fetch(f'/store/v2/storefront/{self.puuid}', url='pd')
+        return self.fetch(f"/store/v2/storefront/{self.puuid}", url="pd")
 
     def store_fetch_wallet(self) -> Mapping[str, Any]:
         """
@@ -184,14 +187,14 @@ class EndpointAPI:
         Get amount of Valorant points and Radiant points the player has
         Valorant points have the id 85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741 and Radiant points have the id e59aa87c-4cbf-517a-5983-6e81511be9b7
         """
-        return self.fetch(f'/store/v1/wallet/{self.puuid}', url='pd')
+        return self.fetch(f"/store/v1/wallet/{self.puuid}", url="pd")
 
     def store_fetch_order(self, order_id: str) -> Mapping[str, Any]:
         """
         Store_GetOrder
         {order id}: The ID of the order. Can be obtained when creating an order.
         """
-        return self.fetch(f'/store/v1/order/{order_id}', url='pd')
+        return self.fetch(f"/store/v1/order/{order_id}", url="pd")
 
     def store_fetch_entitlements(self, item_type: Mapping) -> Mapping[str, Any]:
         """
@@ -227,25 +230,29 @@ class EndpointAPI:
         """
         Aliases `fetch_account_xp` but received a level
         """
-        return self.fetch_account_xp()['Progress']['Level']
+        return self.fetch_account_xp()["Progress"]["Level"]
 
     def get_player_tier_rank(self, puuid: str = None) -> str:
         """
         get player current tier rank
         """
         data = self.fetch_player_mmr(puuid)
-        season_id = data['LatestCompetitiveUpdate']['SeasonID']
+        season_id = data["LatestCompetitiveUpdate"]["SeasonID"]
         if len(season_id) == 0:
             season_id = self.__get_live_season()
-        current_season = data["QueueSkills"]['competitive']['SeasonalInfoBySeasonID']
-        return current_season[season_id]['CompetitiveTier']
+        current_season = data["QueueSkills"]["competitive"]["SeasonalInfoBySeasonID"]
+        return current_season[season_id]["CompetitiveTier"]
 
     # local utility functions
 
     def __get_live_season(self) -> str:
         """Get the UUID of the live competitive season"""
         content = self.fetch_content()
-        season_id = [season["ID"] for season in content["Seasons"] if season["IsActive"] and season["Type"] == "act"]
+        season_id = [
+            season["ID"]
+            for season in content["Seasons"]
+            if season["IsActive"] and season["Type"] == "act"
+        ]
         return (
             season_id[0]
             if season_id
@@ -267,8 +274,8 @@ class EndpointAPI:
     def __build_headers(self, headers) -> Mapping[str, Any]:
         """build headers"""
 
-        headers['X-Riot-ClientPlatform'] = self.client_platform
-        headers['X-Riot-ClientVersion'] = self._get_client_version()
+        headers["X-Riot-ClientPlatform"] = self.client_platform
+        headers["X-Riot-ClientVersion"] = self._get_client_version()
         return headers
 
     def __format_region(self) -> None:
@@ -288,8 +295,8 @@ class EndpointAPI:
         Returns:
             str: 客户端版本信息，格式为 "<分支>-shipping-<构建版本>-<第四位版本号>"
         """
-        r = requests.get('https://valorant-api.com/v1/version')
-        data = r.json()['data']
+        r = requests.get("https://valorant-api.com/v1/version")
+        data = r.json()["data"]
         return f"{data['branch']}-shipping-{data['buildVersion']}-{data['version'].split('.')[3]}"  # return formatted version string
 
     @staticmethod
@@ -299,8 +306,8 @@ class EndpointAPI:
         Returns:
             str: VALORANT版本号，如果获取失败则返回None
         """
-        r = requests.get('https://valorant-api.com/v1/version')
+        r = requests.get("https://valorant-api.com/v1/version")
         if r.status_code != 200:
             return None
-        data = r.json()['data']
-        return data['version']
+        data = r.json()["data"]
+        return data["version"]

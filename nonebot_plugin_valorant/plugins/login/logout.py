@@ -9,18 +9,18 @@ from nonebot_plugin_valorant.database.temporary_db import delete_user
 logout = on_command("logout", aliases={"登出"}, priority=5, block=True)
 auth = Auth()
 
-# async def cache_user_cookie(username: str, password: str) -> Optional[dict[str, Any]]:
-#     return await auth.authenticate(username, password)
 
 logout.handle()
 logout.__doc__ = """用户注销"""
 
 
 @logout.got("username", prompt="请输入您的Riot用户名")
-async def _(event: PrivateMessageEvent,
-            state: T_State,
-            username: str = ArgPlainText("username"),
-            password: str = ArgPlainText("password")):
+async def _(
+    event: PrivateMessageEvent,
+    state: T_State,
+    username: str = ArgPlainText("username"),
+    password: str = ArgPlainText("password"),
+):
     state["username"] = username
     state["qq_uid"] = event.user_id
     try:
@@ -28,4 +28,3 @@ async def _(event: PrivateMessageEvent,
         await logout.finish("注销成功")
     except Exception as e:
         raise DatabaseError("删除失败,请联系管理员") from e
-

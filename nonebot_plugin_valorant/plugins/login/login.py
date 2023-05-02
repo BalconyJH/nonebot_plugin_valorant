@@ -17,14 +17,18 @@ login.__doc__ = """用户登录"""
 
 @login.got("username", prompt="请输入您的Riot用户名")
 @login.got("password", prompt="请输入您的Riot密码")
-async def _(event: PrivateMessageEvent,
-            state: T_State,
-            username: str = ArgPlainText("username"),
-            password: str = ArgPlainText("password")):
+async def _(
+    event: PrivateMessageEvent,
+    state: T_State,
+    username: str = ArgPlainText("username"),
+    password: str = ArgPlainText("password"),
+):
     state["username"] = username
     state["password"] = password
     try:
-        result = await auth.authenticate(username=state["username"], password=state["password"])
+        result = await auth.authenticate(
+            username=state["username"], password=state["password"]
+        )
         state["result"] = result
         if result == "None":
             login.finish("未知错误")
@@ -37,7 +41,9 @@ async def _(event: PrivateMessageEvent,
 
 
 @login.got("code", prompt="请输入您的2FA验证码")
-async def _(bot, event: PrivateMessageEvent, state: T_State, code: str = ArgPlainText("code")):
+async def _(
+    bot, event: PrivateMessageEvent, state: T_State, code: str = ArgPlainText("code")
+):
     try:
         result = await auth.auth_by_code(code, cookies=state["result"]["cookie"])
         state["result"] = result
