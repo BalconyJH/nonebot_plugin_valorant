@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 # Standard
 import json
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Optional
 
 import requests
 import urllib3
@@ -106,8 +106,7 @@ class EndpointAPI:
         Contracts_Fetch
         Get a list of contracts and completion status including match history
         """
-        data = self.fetch(endpoint=f'/contracts/v1/contracts/{self.puuid}', url='pd')
-        return data
+        return self.fetch(endpoint=f'/contracts/v1/contracts/{self.puuid}', url='pd')
 
     # PVP endpoints
 
@@ -116,21 +115,18 @@ class EndpointAPI:
         Content_FetchContent
         Get names and ids for game content such as agents, maps, guns, etc.
         """
-        data = self.fetch(endpoint='/content-service/v3/content', url='shared')
-        return data
+        return self.fetch(endpoint='/content-service/v3/content', url='shared')
 
     def fetch_account_xp(self) -> Mapping[str, Any]:
         """
         AccountXP_GetPlayer
         Get the account level, XP, and XP history for the active player
         """
-        data = self.fetch(endpoint=f'/account-xp/v1/players/{self.puuid}', url='pd')
-        return data
+        return self.fetch(endpoint=f'/account-xp/v1/players/{self.puuid}', url='pd')
 
     def fetch_player_mmr(self, puuid: str = None) -> Mapping[str, Any]:
         puuid = self.__check_puuid(puuid)
-        data = self.fetch(endpoint=f'/mmr/v1/players/{puuid}', url='pd')
-        return data
+        return self.fetch(endpoint=f'/mmr/v1/players/{puuid}', url='pd')
 
     def fetch_name_by_puuid(self, puuid: str = None) -> Mapping[str, Any]:
         """
@@ -141,10 +137,9 @@ class EndpointAPI:
         """
         if puuid is None:
             puuid = [self.__check_puuid()]
-        elif puuid is not None and type(puuid) is str:
+        elif type(puuid) is str:
             puuid = [puuid]
-        data = self.put(endpoint='/name-service/v2/players', url='pd', body=puuid)
-        return data
+        return self.put(endpoint='/name-service/v2/players', url='pd', body=puuid)
 
     def fetch_player_loadout(self) -> Mapping[str, Any]:
         """
@@ -174,8 +169,7 @@ class EndpointAPI:
         Store_GetOffers
         Get prices for all store items
         """
-        data = self.fetch('/store/v1/offers/', url='pd')
-        return data
+        return self.fetch('/store/v1/offers/', url='pd')
 
     def store_fetch_storefront(self) -> Mapping[str, Any]:
         """
@@ -190,16 +184,14 @@ class EndpointAPI:
         Get amount of Valorant points and Radiant points the player has
         Valorant points have the id 85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741 and Radiant points have the id e59aa87c-4cbf-517a-5983-6e81511be9b7
         """
-        data = self.fetch(f'/store/v1/wallet/{self.puuid}', url='pd')
-        return data
+        return self.fetch(f'/store/v1/wallet/{self.puuid}', url='pd')
 
     def store_fetch_order(self, order_id: str) -> Mapping[str, Any]:
         """
         Store_GetOrder
         {order id}: The ID of the order. Can be obtained when creating an order.
         """
-        data = self.fetch(f'/store/v1/order/{order_id}', url='pd')
-        return data
+        return self.fetch(f'/store/v1/order/{order_id}', url='pd')
 
     def store_fetch_entitlements(self, item_type: Mapping) -> Mapping[str, Any]:
         """
@@ -218,8 +210,9 @@ class EndpointAPI:
         '3ad1b2b2-acdb-4524-852f-954a76ddae0a': 'Skins chroma',\n
         'de7caa6b-adf7-4588-bbd1-143831e786c6': 'Player titles',\n
         """
-        data = self.fetch(endpoint=f"/store/v1/entitlements/{self.puuid}/{item_type}", url="pd")
-        return data
+        return self.fetch(
+            endpoint=f"/store/v1/entitlements/{self.puuid}/{item_type}", url="pd"
+        )
 
     # useful endpoints
 
@@ -228,15 +221,13 @@ class EndpointAPI:
         Get player daily/weekly missions
         """
         data = self.fetch_contracts()
-        mission = data["Missions"]
-        return mission
+        return data["Missions"]
 
     def get_player_level(self) -> Mapping[str, Any]:
         """
         Aliases `fetch_account_xp` but received a level
         """
-        data = self.fetch_account_xp()['Progress']['Level']
-        return data
+        return self.fetch_account_xp()['Progress']['Level']
 
     def get_player_tier_rank(self, puuid: str = None) -> str:
         """
@@ -247,8 +238,7 @@ class EndpointAPI:
         if len(season_id) == 0:
             season_id = self.__get_live_season()
         current_season = data["QueueSkills"]['competitive']['SeasonalInfoBySeasonID']
-        current_Tier = current_season[season_id]['CompetitiveTier']
-        return current_Tier
+        return current_season[season_id]['CompetitiveTier']
 
     # local utility functions
 
@@ -256,15 +246,17 @@ class EndpointAPI:
         """Get the UUID of the live competitive season"""
         content = self.fetch_content()
         season_id = [season["ID"] for season in content["Seasons"] if season["IsActive"] and season["Type"] == "act"]
-        if not season_id:
-            return self.fetch_player_mmr()["LatestCompetitiveUpdate"]["SeasonID"]
-        return season_id[0]
+        return (
+            season_id[0]
+            if season_id
+            else self.fetch_player_mmr()["LatestCompetitiveUpdate"]["SeasonID"]
+        )
 
-    def __check_puuid(self, puuid: str) -> str:
+    def __check_puuid(self, puuid: Optional[str] = None) -> str:
         """If puuid passed into method is None make it current user's puuid"""
         return self.puuid if puuid is None else puuid
 
-    def __build_urls(self) -> str:
+    def __build_urls(self):
         """
         generate URLs based on region/shard
         """
@@ -288,16 +280,27 @@ class EndpointAPI:
         if self.shard in shard_region_override.keys():
             self.region = shard_region_override[self.shard]
 
-    def _get_client_version(self) -> str:
-        """Get the client version"""
+    @staticmethod
+    def _get_client_version() -> str:
+        """
+        获取 Valorant 客户端版本信息
+
+        Returns:
+            str: 客户端版本信息，格式为 "<分支>-shipping-<构建版本>-<第四位版本号>"
+        """
         r = requests.get('https://valorant-api.com/v1/version')
         data = r.json()['data']
         return f"{data['branch']}-shipping-{data['buildVersion']}-{data['version'].split('.')[3]}"  # return formatted version string
 
-    def _get_valorant_version(self) -> str:
-        """Get the valorant version"""
+    @staticmethod
+    def get_valorant_version():
+        """获取VALORANT版本号
+
+        Returns:
+            str: VALORANT版本号，如果获取失败则返回None
+        """
         r = requests.get('https://valorant-api.com/v1/version')
-        if r.status != 200:
+        if r.status_code != 200:
             return None
         data = r.json()['data']
         return data['version']
