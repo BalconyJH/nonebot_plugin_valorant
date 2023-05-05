@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, TypedDict, Optional
 
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,7 +16,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "user"
 
-    puuid: Mapped[str] = mapped_column(String(255))
+    puuid: Mapped[str] = mapped_column(String(255), primary_key=True)
     cookie: Mapped[str] = mapped_column(String(255))
     access_token: Mapped[str] = mapped_column(String(255))
     token_id: Mapped[str] = mapped_column(String(255))
@@ -24,24 +24,16 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(255))
     region: Mapped[str] = mapped_column(String(255))
     expiry_token: Mapped[str] = mapped_column(String(255))
-    qq_uid: Mapped[int] = mapped_column(primary_key=True)
+    qq_uid: Mapped[int] = mapped_column(String(30), nullable=False)
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
     # group_id: Mapped[str] = mapped_column(String(255))
 
-    def __init__(self, **kw: Any):
-        super().__init__()
-        self._puuid = None
 
-    @property
-    def puuid(self):
-        return self._puuid
-
-    @puuid.setter
-    def puuid(self, value):
-        if not value:
-            raise ValueError("puuid 是必需的")
-        self._puuid = value
+class UserStore(Base):
+    qq_uid: Mapped[int] = mapped_column(String(30), nullable=False)
+    puuid: Mapped[str] = mapped_column(String(255), primary_key=True)
+    #  TODO: add more fields
 
 
 def add_user(user_info: Dict[str, Any]):
@@ -57,9 +49,18 @@ def add_user(user_info: Dict[str, Any]):
 
 
 # 删除用户
-def delete_user(puuid: str):
-    user = session.query(User).filter_by(puuid=puuid).first()
-    session.delete(user)
+def delete_user(qq_uid: int, username: Optional[str] = None):  # TODO: 删除关联表
+    if username is not None:
+        user = session.query(User).filter_by(username=username, qq_uid=qq_uid).first()
+        if user is None:
+            raise ValueError(f"No user found with username '{username}' and qq_uid '{qq_uid}'")
+        session.delete(user)
+    else:
+        users = session.query(User).filter_by(qq_uid=qq_uid).all()
+        if len(users) == 0:
+            raise ValueError(f"No user found with qq_uid '{qq_uid}'")
+        for user in users:
+            session.delete(user)
     session.commit()
 
 
@@ -92,5 +93,5 @@ def init():
         print(f"表创建失败: {e}")
 
 
-# if __name__ == '__main__':
-#     init()
+if __name__ == '__main__':
+    init()

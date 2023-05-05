@@ -10,14 +10,14 @@ from typing import Any, Dict, Mapping, Optional
 import requests
 import urllib3
 
-from .errors import HandshakeError, ResponseError
+from nonebot_plugin_valorant.utils.errors import HandshakeError, ResponseError
 
 # Local
-from .request_res import (base_endpoint,
-                          base_endpoint_glz,
-                          base_endpoint_shared,
-                          region_shard_override,
-                          shard_region_override)
+from nonebot_plugin_valorant.utils.reqlib.request_res import (base_endpoint,
+                                                              base_endpoint_glz,
+                                                              base_endpoint_shared,
+                                                              region_shard_override,
+                                                              shard_region_override)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

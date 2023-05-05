@@ -42,6 +42,14 @@ class NotOwner(TranslatableError):
     pass
 
 
+class NoneReturnError(TranslatableError):
+    """
+    当请求资源返回空时引发的异常。
+    """
+
+    pass
+
+
 class BadArgument(TranslatableError):
     """
     当找不到命令的参数时引发的异常。

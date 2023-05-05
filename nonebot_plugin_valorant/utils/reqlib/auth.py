@@ -8,8 +8,8 @@ import aiohttp as aiohttp
 import httpx
 import urllib3.exceptions
 
-from .errors import AuthenticationError
-from .translator import Translator
+from nonebot_plugin_valorant.utils.errors import AuthenticationError
+from nonebot_plugin_valorant.utils.translator import Translator
 from nonebot_plugin_valorant.config import plugin_config
 import warnings
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
@@ -27,7 +27,7 @@ def message_translator(message_key: str) -> str:
 
 
 # https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites/
-
+# 定义一个强制使用的加密套件列表
 FORCED_CIPHERS = [
     "ECDHE-ECDSA-AES256-GCM-SHA384",
     "ECDHE-ECDSA-AES128-GCM-SHA256",
