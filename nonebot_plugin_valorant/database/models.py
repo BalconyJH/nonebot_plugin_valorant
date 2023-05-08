@@ -1,4 +1,3 @@
-from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import String, create_engine, Column, func, DateTime
 
@@ -120,7 +119,7 @@ class Version(Base):
 
     valorant_client_version: Mapped[str] = mapped_column(String(255))
 
-    bot_version: Mapped[str] = mapped_column(String(255))
+    bot_version: Mapped[str] = mapped_column(String(255), primary_key=True)
 
     def __repr__(self):
         return f"<Version(valorant_client_version='{self.valorant_client_version}', bot_version='{self.bot_version}')>"

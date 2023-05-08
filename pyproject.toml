@@ -17,6 +17,7 @@ dependencies = [
     "nonebot-plugin-datastore>=0.6.2",
     "nonebot-plugin-apscheduler>=0.2.0",
     "cryptography>=40.0.2",
+    "sqlalchemy-utils>=0.41.1",
 ]
 requires-python = ">=3.8"
 readme = "README.md"
@@ -33,3 +34,8 @@ adapters = [
 plugins = []
 plugin_dirs = ["nonebot_plugin_valorant/plugins"]
 builtin_plugins = ["echo"]
+
+[[tool.pdm.source]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+verify_ssl = false
+name = "pypi"

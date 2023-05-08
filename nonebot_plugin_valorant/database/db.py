@@ -1,35 +1,34 @@
-from sysconfig import get_path
+from sqlalchemy import String, create_engine, Column, func, DateTime
+from sqlalchemy_utils import database_exists, create_database
+from nonebot_plugin_valorant.database.models import Base
+from contextlib import suppress
+from sqlalchemy.exc import SQLAlchemyError
 
-from tortoise import Tortoise, run_async
-from nonebot_plugin_datastore.db import post_db_init
-
-
-@post_db_init
-async def init():
-    # TODO document why this method is empty
-    pass
+engine = create_engine("mysql+pymysql://root:070499@localhost:3306/valorant_bot")
 
 
 class DB:
-
     @classmethod
     async def init(cls):
-        config = {
-            "connection":
-                {
-                    "valorant_bot": f"sqlite://{get_path('data.sqlite3')}"
-                },
-            "apps":
-                {
-                    "valorant_bot_app":
-                        {
-                            "models": ["valorant_bot.database.models"],
-                            "default_connection": "valorant_bot",
-                        }
-                }
-        }
-        await Tortoise.init(config)
+        with suppress(ValueError):
+            create_database(engine.url)
+        with suppress(SQLAlchemyError):
+            Base.metadata.create_all(engine)
 
-        await Tortoise.generate_schemas()
+    @classmethod
+    async def create_database(cls):
+        if not database_exists(engine.url):
+            create_database(engine.url)
+        return True
 
-    run_async(init())
+
+async def main():
+    await DB.init()
+    print("数据库初始化完成")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
