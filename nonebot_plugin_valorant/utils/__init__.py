@@ -1,7 +1,14 @@
+from contextlib import suppress
+
+import aiohttp
 import httpx
 from nonebot import on_command as _on_command, require
-from tortoise import Tortoise
+from nonebot.log import logger
 from nonebot_plugin_valorant.config import plugin_config
+from .errors import AuthenticationError, DatabaseError
+from ..database import DB
+from ..database.db import engine
+from sqlalchemy.exc import OperationalError
 
 
 def on_command(cmd, *args, **kwargs):
@@ -11,35 +18,32 @@ def on_command(cmd, *args, **kwargs):
 def check_proxy():
     """检查代理是否有效"""
     if plugin_config.valorant_proxies:
-        try:
-            httpx.get(
-                "https://icanhazip.com/",
-                proxies={"http://": plugin_config.valorant_proxies},
-                timeout=2,
-            )
-        except Exception as e:
-            raise RuntimeError("代理无效，请检查代理") from e
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(
+                    "https://icanhazip.com/",
+                    proxy=plugin_config.valorant_proxies,
+                    timeout=2,
+                ):
+                    pass
+            except aiohttp.ClientError as e:
+                raise RuntimeError("代理无效，请检查代理") from e
 
 
-# async def check_db():
-#     """检查数据库是否有效"""
-#     try:
-#         await Tortoise.init(
-#             db_url=plugin_config.valorant_database,  # MySQL连接URL
-#             modules={'models': ['__main__']})
-#         conn = Tortoise.get_connection('default')
-#         await conn.execute_query('SELECT 1')
-#         print("数据库连接正常")
-#     except Exception as e:
-#         raise RuntimeError("数据库无效，请检查数据库") from e
-#     finally:
-#         await Tortoise.close_connections()
+async def check_db():
+    """检查数据库是否有效"""
+    try:
+        await DB.init()
+        await engine.connect()
+    except OperationalError as e:
+        raise DatabaseError("数据库无效，请检查数据库") from e
+    await engine.dispose()  # 关闭数据库连接
 
 
 def on_startup():
     """启动前检查"""
     check_proxy()
-    # check_db()
+    check_db()
 
 
 PROXIES = {plugin_config.valorant_proxies}

@@ -4,7 +4,6 @@ from nonebot import Bot
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from nonebot.exception import FinishedException
 
-from nonebot_plugin_valorant.utils.translator import message_translator
 
 
 async def send_error_msg(bot: Bot, event: Union[GroupMessageEvent, PrivateMessageEvent], error_message: str):
@@ -30,8 +29,8 @@ class TranslatableError(Exception):
     def __init__(self, message):
         self.message = message
 
-    def __str__(self):
-        return message_translator(self.message)
+    # def __str__(self):
+    #     return message_translator(self.message)
 
 
 class NotOwner(TranslatableError):
@@ -98,6 +97,6 @@ class DatabaseError(TranslatableError):
     pass
 
 
-class FileExistError(TranslatableError(FileExistsError)):
+class FileExistError(TranslatableError):
 
     pass
