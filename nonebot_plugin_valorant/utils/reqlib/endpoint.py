@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-
 # Standard
 import json
 from typing import Any, Dict, Mapping, Optional
@@ -12,7 +11,6 @@ import requests
 import urllib3
 
 from nonebot_plugin_valorant.utils.errors import HandshakeError, ResponseError
-
 # Local
 from nonebot_plugin_valorant.utils.reqlib.request_res import (
     base_endpoint,
@@ -46,7 +44,7 @@ class EndpointAPI:
         self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
 
         # language
-        self.locale_code = "en-US"
+        self.locale_code = "zh-CN"
 
     # async def refresh_token(self) -> None:
     # cookies = self.cookie
@@ -300,7 +298,7 @@ class EndpointAPI:
         return f"{data['branch']}-shipping-{data['buildVersion']}-{data['version'].split('.')[3]}"  # return formatted version string
 
     @staticmethod
-    def get_valorant_version():
+    def _get_valorant_version():
         """获取VALORANT版本号
 
         Returns:

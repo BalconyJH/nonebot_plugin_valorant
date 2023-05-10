@@ -1,8 +1,6 @@
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-from sqlalchemy import String, create_engine, Column, func, DateTime
-
-
+from sqlalchemy import String, Column, func, DateTime
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Mapped, mapped_column
 
 Base = declarative_base()
 
@@ -47,7 +45,7 @@ class User(BaseModel):
 
     __tablename__ = "user"
 
-    puuid: Mapped[str] = mapped_column(String(255), primary_key=True)
+    puuid: Mapped[str] = mapped_column(String(255))
     """str: 用户的唯一标识符，作为主键。"""
 
     cookie: Mapped[str] = mapped_column(String(255))
@@ -71,7 +69,7 @@ class User(BaseModel):
     expiry_token: Mapped[str] = mapped_column(String(255))
     """str: access token的过期时间。"""
 
-    qq_uid: Mapped[int] = mapped_column(String(30), nullable=False)
+    qq_uid: Mapped[int] = mapped_column(String(30), nullable=False, primary_key=True)
     """int: 用户的QQ uid。"""
 
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())

@@ -1,12 +1,16 @@
-from sqlalchemy import String, create_engine, Column, func, DateTime
-from sqlalchemy_utils import database_exists, create_database
-from nonebot_plugin_valorant.database.models import BaseModel
-from contextlib import suppress
+from nonebot import get_driver
 from nonebot.log import logger
-from nonebot_plugin_valorant.config import plugin_config
+from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy_utils import database_exists, create_database
+
+from nonebot_plugin_valorant.config import plugin_config
+from nonebot_plugin_valorant.database.models import BaseModel, User
 
 engine = create_engine(plugin_config.valorant_database)
+Session = sessionmaker(bind=engine)
+session = Session()
 
 
 class DB:
@@ -30,3 +34,21 @@ class DB:
             BaseModel.metadata.create_all(engine)
         except SQLAlchemyError as e:
             logger.error(f"创建表失败{e}")
+
+    @staticmethod
+    async def close():
+        engine.dispose()
+
+    @classmethod
+    async def login(cls, **kwargs):
+        await User.add(**kwargs)
+        return True
+
+    @classmethod
+    async def logout(cls, qq_uid: str):
+        await User.delete(session, qq_uid=qq_uid)
+        return True
+
+
+get_driver().on_startup(DB.init)
+get_driver().on_shutdown(DB.close)

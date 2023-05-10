@@ -1,9 +1,13 @@
+from contextlib import suppress
+from typing import Dict, Any
+
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent
-from nonebot.params import ArgPlainText, T_State, CommandArg
+from nonebot.params import ArgPlainText, T_State
 
-from nonebot_plugin_valorant.utils.reqlib.auth import Auth
+from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.utils.errors import AuthenticationError
+from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 login = on_command("login", aliases={"登录"}, priority=5, block=True)
 auth = Auth()
@@ -13,6 +17,33 @@ auth = Auth()
 
 login.handle()
 login.__doc__ = """用户登录"""
+
+
+async def login_db(
+    event: PrivateMessageEvent,
+    result: Dict[str, Any],
+):
+    if result["auth"] == "response":
+        with suppress(AuthenticationError):
+            region = await auth.get_region(
+                result["data"]["access_token"], result["data"]["token_id"]
+            )
+            entitlements_token = await auth.get_entitlements_token(
+                result["data"]["access_token"]
+            )
+            puuid, name, tag = await auth.get_userinfo(result["data"]["access_token"])
+            player_name = f"{name}#{tag}" if tag and tag is not None else "no_username"
+        await DB.login(
+            qq_uid=event.user_id,
+            username=player_name,
+            cookie=result["cookie"],
+            access_token=result["data"]["access_token"],
+            token_id=result["data"]["token_id"],
+            region=region,
+            entitlements_token=entitlements_token,
+            puuid=puuid,
+        )
+        await login.finish("登录成功")
 
 
 @login.got("username", prompt="请输入您的Riot用户名")
@@ -37,17 +68,20 @@ async def _(
     if state["result"]["auth"] == "2fa":
         login.skip()
     elif state["result"]["auth"] == "response":
-        await login.finish("登录成功")
+        await login_db(event, state["result"])
 
 
 @login.got("code", prompt="请输入您的2FA验证码")
 async def _(
-    bot, event: PrivateMessageEvent, state: T_State, code: str = ArgPlainText("code")
+    event: PrivateMessageEvent, state: T_State, code: str = ArgPlainText("code")
 ):
     try:
-        result = await auth.auth_by_code(code, cookies=state["result"]["cookie"])
-        state["result"] = result
-        if result == "None":
+        state["result"] = await auth.auth_by_code(
+            code, cookies=state["result"]["cookie"]
+        )
+        if state["result"] == "None":
             login.finish("未知错误")
+        elif state["result"]["auth"] == "response":
+            await login_db(event, state["result"])
     except AuthenticationError as e:
-        await login.reject(f"{e}")
+        await login.reject(f"登陆失败{e}")

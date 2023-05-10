@@ -1,8 +1,8 @@
-from typing import Dict, Any, List, TypedDict, Optional
+from typing import Dict, Any, List
 
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, Session
+from sqlalchemy import String, create_engine
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import String, create_engine, Column, func, DateTime
+from sqlalchemy.orm import Mapped, mapped_column, Session
 
 engine = create_engine("mysql+pymysql://root:070499@localhost:3306/valorant_bot")
 session = Session(bind=engine)
@@ -168,20 +168,12 @@ def add_user(user_info: Dict[str, Any]):
 
 
 # 删除用户
-def delete_user(qq_uid: int, username: Optional[str] = None):  # TODO: 删除关联表
-    if username is not None:
-        user = session.query(User).filter_by(username=username, qq_uid=qq_uid).first()
-        if user is None:
-            raise ValueError(
-                f"No user found with username '{username}' and qq_uid '{qq_uid}'"
-            )
+def delete_user(qq_uid: int):  # TODO: 删除关联表
+    users = session.query(User).filter_by(qq_uid=qq_uid).all()
+    if len(users) == 0:
+        raise ValueError(f"No user found with qq_uid '{qq_uid}'")
+    for user in users:
         session.delete(user)
-    else:
-        users = session.query(User).filter_by(qq_uid=qq_uid).all()
-        if len(users) == 0:
-            raise ValueError(f"No user found with qq_uid '{qq_uid}'")
-        for user in users:
-            session.delete(user)
     session.commit()
 
 
