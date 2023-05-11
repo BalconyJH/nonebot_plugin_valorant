@@ -41,12 +41,12 @@ class DB:
 
     @classmethod
     async def login(cls, **kwargs):
-        await User.add(**kwargs)
+        User.add(session, **kwargs)
         return True
 
     @classmethod
     async def logout(cls, qq_uid: str):
-        await User.delete(session, qq_uid=qq_uid)
+        User.delete(session, qq_uid=qq_uid)
         return True
 
 

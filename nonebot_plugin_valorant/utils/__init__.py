@@ -1,21 +1,18 @@
-from contextlib import suppress
-
 import aiohttp
-import httpx
 from nonebot import on_command as _on_command, require
-from nonebot.log import logger
+from sqlalchemy.exc import OperationalError
+
 from nonebot_plugin_valorant.config import plugin_config
 from .errors import AuthenticationError, DatabaseError
 from ..database import DB
 from ..database.db import engine
-from sqlalchemy.exc import OperationalError
 
 
 def on_command(cmd, *args, **kwargs):
     return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
 
 
-def check_proxy():
+async def check_proxy():
     """检查代理是否有效"""
     if plugin_config.valorant_proxies:
         async with aiohttp.ClientSession() as session:

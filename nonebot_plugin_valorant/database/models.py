@@ -1,4 +1,4 @@
-from sqlalchemy import String, Column, func, DateTime
+from sqlalchemy import String, Column, func, DateTime, JSON, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -48,26 +48,23 @@ class User(BaseModel):
     puuid: Mapped[str] = mapped_column(String(255))
     """str: 用户的唯一标识符，作为主键。"""
 
-    cookie: Mapped[str] = mapped_column(String(255))
+    cookie: Mapped[JSON] = mapped_column(JSON)
     """str: 用户的cookie。"""
 
-    access_token: Mapped[str] = mapped_column(String(255))
+    access_token: Mapped[Text] = mapped_column(Text)
     """str: 用户的access token。"""
 
-    token_id: Mapped[str] = mapped_column(String(255))
+    token_id: Mapped[Text] = mapped_column(Text)
     """str: 用户的token id。"""
 
-    emt: Mapped[str] = mapped_column(String(255))
-    """str: 用户的emt。"""
+    emt: Mapped[Text] = mapped_column(Text)
+    """str: 用户的entitlements_token。"""
 
     username: Mapped[str] = mapped_column(String(255))
     """str: 用户的用户名。"""
 
     region: Mapped[str] = mapped_column(String(255))
     """str: 用户所在的地区。"""
-
-    expiry_token: Mapped[str] = mapped_column(String(255))
-    """str: access token的过期时间。"""
 
     qq_uid: Mapped[int] = mapped_column(String(30), nullable=False, primary_key=True)
     """int: 用户的QQ uid。"""

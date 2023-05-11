@@ -1,6 +1,7 @@
 import json
 import re
 import ssl
+import warnings
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Any, Dict
 
@@ -8,10 +9,9 @@ import aiohttp as aiohttp
 import httpx
 import urllib3.exceptions
 
+from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.utils.errors import AuthenticationError
 from nonebot_plugin_valorant.utils.translator import Translator
-from nonebot_plugin_valorant.config import plugin_config
-import warnings
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -210,12 +210,15 @@ class Auth:
             proxy=PROXY,
         ) as response:
             data = await response.json()
+            print(data)
             for cookie in response.cookies.items():
                 cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         # 关闭会话。
         await session.close()
-
+        # 请求过多返回"error" = "rate_limited"
+        if data.get("error") == "rate_limited":
+            raise AuthenticationError("RATELIMIT，请等待几分钟并重试。")
         # 处理身份验证响应。
         if data["type"] == "response":
             # 如果身份验证成功，则从响应中提取令牌。

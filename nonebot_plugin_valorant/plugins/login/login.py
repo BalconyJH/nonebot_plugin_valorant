@@ -1,9 +1,11 @@
+import json
 from contextlib import suppress
 from typing import Dict, Any
 
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent
 from nonebot.params import ArgPlainText, T_State
+from sqlalchemy.exc import IntegrityError
 
 from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.utils.errors import AuthenticationError
@@ -36,11 +38,11 @@ async def login_db(
         await DB.login(
             qq_uid=event.user_id,
             username=player_name,
-            cookie=result["cookie"],
+            cookie=json.dumps(result["data"]["cookie"]),  # cookie is a dict
             access_token=result["data"]["access_token"],
             token_id=result["data"]["token_id"],
             region=region,
-            entitlements_token=entitlements_token,
+            emt=entitlements_token,
             puuid=puuid,
         )
         await login.finish("登录成功")
@@ -56,19 +58,24 @@ async def _(
 ):
     state["username"] = username
     state["password"] = password
+
     try:
         result = await auth.authenticate(
             username=state["username"], password=state["password"]
         )
         state["result"] = result
+        print(result)
         if result == "None":
             login.finish("未知错误")
     except AuthenticationError as e:
-        await login.reject(f"{e}")
+        await login.finish(f"{e}")
     if state["result"]["auth"] == "2fa":
         login.skip()
     elif state["result"]["auth"] == "response":
-        await login_db(event, state["result"])
+        try:
+            await login_db(event, state["result"])
+        except IntegrityError:
+            await login.finish("目前一个QQ仅支持登录一个账号")
 
 
 @login.got("code", prompt="请输入您的2FA验证码")
@@ -79,9 +86,14 @@ async def _(
         state["result"] = await auth.auth_by_code(
             code, cookies=state["result"]["cookie"]
         )
+        print(state["result"])
         if state["result"] == "None":
             login.finish("未知错误")
         elif state["result"]["auth"] == "response":
+            print(state["result"]["auth"])
             await login_db(event, state["result"])
     except AuthenticationError as e:
-        await login.reject(f"登陆失败{e}")
+        await login.finish(f"登陆失败{e}")
+        raise AuthenticationError("登陆失败") from e
+    except IntegrityError:
+        await login.finish("目前一个QQ仅支持登录一个账号")
