@@ -43,7 +43,5 @@ def on_startup():
     check_db()
 
 
-PROXIES = {plugin_config.valorant_proxies}
-
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler  # noqa

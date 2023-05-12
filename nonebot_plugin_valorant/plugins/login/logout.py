@@ -28,5 +28,7 @@ async def _(
         try:
             await DB.logout(state["qq_uid"])
             await logout.finish("注销成功")
-        except Exception as e:
-            raise DatabaseError("删除失败,请联系管理员") from e
+        except DatabaseError as e:
+            logout.finish(f"注销失败{e}")
+    else:
+        await logout.finish("已取消")
