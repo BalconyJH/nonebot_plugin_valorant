@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Dict
 
 from nonebot import get_driver
@@ -9,6 +10,7 @@ from sqlalchemy_utils import database_exists, create_database
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.database.models import BaseModel, User
+from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 engine = create_engine(plugin_config.valorant_database)
 Session = sessionmaker(bind=engine)
@@ -84,7 +86,12 @@ class DB:
         返回值:
         - user: 用户信息(Dict)。
         """
-        return User.get(session, qq_uid=qq_uid)
+        data = User.get(session, qq_uid=qq_uid)
+        if datetime.now(timezone.utc) > data["expiry_token"]:
+            access_token, entitlements_token = await Auth().refresh_token(data["cookie"])
+            data["access_token"] = access_token
+            data["entitlements_token"] = entitlements_token
+        return data
 
 
 get_driver().on_startup(DB.init)

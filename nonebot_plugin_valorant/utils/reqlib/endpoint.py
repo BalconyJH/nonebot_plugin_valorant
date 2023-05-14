@@ -7,10 +7,12 @@ import contextlib
 import json
 from typing import Any, Dict, Mapping, Optional
 
+import aiohttp
 import requests
 import urllib3
 
 from nonebot_plugin_valorant.utils.errors import HandshakeError, ResponseError
+from nonebot_plugin_valorant.utils.reqlib.client import get_client_version
 # Local
 from nonebot_plugin_valorant.utils.reqlib.request_res import (
     base_endpoint,
@@ -44,7 +46,7 @@ class EndpointAPI:
         self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
 
         # language
-        self.locale_code = "zh-CN"
+        self.locale_code = "en-US"
 
     # async def refresh_token(self) -> None:
     # cookies = self.cookie
@@ -69,9 +71,9 @@ class EndpointAPI:
             # await self.refresh_token()
             # return await self.fetch(endpoint=endpoint, url=url, errors=errors)
 
-    def put(self, endpoint: str = "/", url: str = "pd", data: dict = None) -> dict:
+    async def put(self, endpoint: str = "/", url: str = "pd", data: dict = None) -> dict:
         """
-        发送 PUT 请求到 API。
+        异步发送 PUT 请求到 API。
 
         Args:
             endpoint: API 的路径，默认为根路径。
@@ -84,21 +86,20 @@ class EndpointAPI:
         Raises:
             ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
         """
-
         if data is None:
             data = {}
 
         endpoint_url = getattr(self, url)
 
-        r = requests.put(f"{endpoint_url}{endpoint}", headers=self.headers, json=data)
-        r.raise_for_status()
+        async with aiohttp.ClientSession() as session:
+            async with session.put(f"{endpoint_url}{endpoint}", headers=self.headers, json=data) as response:
+                response.raise_for_status()
+                response_data = await response.json()
 
-        data = r.json()
-
-        if data is not None:
-            return data
-        else:
-            raise ResponseError("errors.API.REQUEST_FAILED")
+                if response_data is not None:
+                    return response_data
+                else:
+                    raise ResponseError("errors.API.REQUEST_FAILED")
 
     # contracts endpoints
 
@@ -273,7 +274,7 @@ class EndpointAPI:
         """build headers"""
 
         headers["X-Riot-ClientPlatform"] = self.client_platform
-        headers["X-Riot-ClientVersion"] = self._get_client_version()
+        headers["X-Riot-ClientVersion"] = get_client_version()
         return headers
 
     def __format_region(self) -> None:
@@ -284,28 +285,3 @@ class EndpointAPI:
             self.shard = region_shard_override[self.region]
         if self.shard in shard_region_override.keys():
             self.region = shard_region_override[self.shard]
-
-    @staticmethod
-    def _get_client_version() -> str:
-        """
-        获取 Valorant 客户端版本信息
-
-        Returns:
-            str: 客户端版本信息，格式为 "<分支>-shipping-<构建版本>-<第四位版本号>"
-        """
-        r = requests.get("https://valorant-api.com/v1/version")
-        data = r.json()["data"]
-        return f"{data['branch']}-shipping-{data['buildVersion']}-{data['version'].split('.')[3]}"  # return formatted version string
-
-    @staticmethod
-    def _get_valorant_version():
-        """获取VALORANT版本号
-
-        Returns:
-            str: VALORANT版本号，如果获取失败则返回None
-        """
-        r = requests.get("https://valorant-api.com/v1/version")
-        if r.status_code != 200:
-            return None
-        data = r.json()["data"]
-        return data["version"]

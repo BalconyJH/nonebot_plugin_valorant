@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from io import BytesIO
 from typing import Optional, Dict, Any
-from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.utils.errors import ResponseError
 
 import aiohttp
+
+from nonebot_plugin_valorant.config import plugin_config
 
 # ------------------- #
 # credit https://github.com/colinhartigan/
@@ -124,7 +123,7 @@ async def fetch_json_data(
     return None
 
 
-async def get_valorant_version() -> Optional[str]:
+async def get_manifest_id() -> Optional[str]:
     """获取最新的 VALORANT 版本号。
 
     Returns:

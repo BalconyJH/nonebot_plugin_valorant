@@ -1,5 +1,6 @@
 import json
 from contextlib import suppress
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
 from nonebot import on_command
@@ -33,6 +34,9 @@ async def login_db(
             entitlements_token = await auth.get_entitlements_token(
                 result["data"]["access_token"]
             )
+            expiry_token = datetime.timestamp(
+                datetime.now(timezone.utc) + timedelta(minutes=59)
+            )
             puuid, name, tag = await auth.get_userinfo(result["data"]["access_token"])
             player_name = f"{name}#{tag}" if tag and tag is not None else "no_username"
         await DB.login(
@@ -44,6 +48,7 @@ async def login_db(
             region=region,
             emt=entitlements_token,
             puuid=puuid,
+            expiry_token=expiry_token,
         )
         await login.finish("登录成功")
 

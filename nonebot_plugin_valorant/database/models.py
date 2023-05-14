@@ -63,6 +63,9 @@ class User(BaseModel):
     username: Mapped[str] = mapped_column(String(255))
     """str: 用户的用户名。"""
 
+    expiry_token: Mapped[str] = mapped_column(String(255))
+    """str: 用户的token过期时间。"""
+
     region: Mapped[str] = mapped_column(String(255))
     """str: 用户所在的地区。"""
 

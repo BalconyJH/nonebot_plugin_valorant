@@ -50,7 +50,7 @@ FORCED_CIPHERS = [
 ]
 
 
-class ClientSessionWithProxy(httpx.Client):
+class HttpxClientSession(httpx.Client):
     def __init__(self, proxy=PROXY, *args, **kwargs):
         # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
@@ -445,7 +445,7 @@ class Auth:
         # 否则引发 AuthenticationError。
         raise AuthenticationError(message_translator("输入的 2FA 验证码无效"))
 
-    async def redeem_cookies(self, cookies: Dict) -> Tuple[Dict[str, Any], str, str]:
+    async def redeem_cookies(self, cookies: Dict) -> Dict[str, (str, dict)]:
         """
         该函数用于兑换 cookies。
 
@@ -502,7 +502,11 @@ class Auth:
         access_token, token_id = self._extract_tokens_from_uri(data)
         entitlements_token = await self.get_entitlements_token(access_token)
 
-        return new_cookies, access_token, entitlements_token
+        return {
+            "cookies": new_cookies,
+            "access_token": access_token,
+            "entitlements_token": entitlements_token,
+        }
 
     async def temp_auth(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """
@@ -513,8 +517,7 @@ class Auth:
             password (str): 玩家密码。
 
         Returns:
-            dict: 包含玩家信息的字典，包括 'puuid', 'region', 'headers', 'player_name' 等字段。
-
+            包含兑换后的 cookies、access token 和 entitlements token 的字典。
         Raises:
             AuthenticationError: 如果临时登录不支持双因素身份验证，则会引发异常。
         """
@@ -606,5 +609,10 @@ class Auth:
             "emt": entitlements_token,
         }
 
-    async def refresh_token(self, cookies: Dict) -> Tuple[Dict[str, Any], str, str]:
-        return await self.redeem_cookies(cookies)
+    async def refresh_token(self, cookies: Dict) -> Tuple[str, str]:
+        data = await self.redeem_cookies(cookies)
+        access_token, entitlements_token = (
+            data["access_token"],
+            data["entitlements_token"],
+        )
+        return access_token, entitlements_token
