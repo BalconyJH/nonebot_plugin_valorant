@@ -74,6 +74,7 @@ class DB:
         - qq_uid: 用户的 QQ UID。
         """
         User.delete(session, qq_uid=qq_uid)
+        # todo 级联删除用户的所有数据(shop, user, misson, etc.)
 
     @classmethod
     async def get_user(cls, qq_uid: str) -> Dict:
@@ -94,5 +95,6 @@ class DB:
         return data
 
 
+# nonebot启动时初始化/关闭数据库
 get_driver().on_startup(DB.init)
 get_driver().on_shutdown(DB.close)

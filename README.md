@@ -11,6 +11,18 @@
 
 See [Docs](https://v2.nonebot.dev/)
 
+## 🧷 备注
+
+服务器和地区对应关系
+
+| Shard |    Regions    |
+|:-----:|:-------------:|
+|  na   | latam, br, na |
+|  pbe  |      na       |
+|  eu   |      eu       |
+|  ap   |      ap       |
+|  kr   |      kr       |
+
 ## 📋 路线图
 
 请访问本项目的 [Projects](https://github.com/users/BalconyJH/projects/4)

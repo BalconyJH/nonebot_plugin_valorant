@@ -18,8 +18,6 @@ from nonebot_plugin_valorant.utils.reqlib.request_res import (
     base_endpoint,
     base_endpoint_glz,
     base_endpoint_shared,
-    region_shard_override,
-    shard_region_override,
 )
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -71,7 +69,9 @@ class EndpointAPI:
             # await self.refresh_token()
             # return await self.fetch(endpoint=endpoint, url=url, errors=errors)
 
-    async def put(self, endpoint: str = "/", url: str = "pd", data: dict = None) -> dict:
+    async def put(
+            self, endpoint: str = "/", url: str = "pd", data: dict = None
+    ) -> dict:
         """
         异步发送 PUT 请求到 API。
 
@@ -92,7 +92,9 @@ class EndpointAPI:
         endpoint_url = getattr(self, url)
 
         async with aiohttp.ClientSession() as session:
-            async with session.put(f"{endpoint_url}{endpoint}", headers=self.headers, json=data) as response:
+            async with session.put(
+                    f"{endpoint_url}{endpoint}", headers=self.headers, json=data
+            ) as response:
                 response.raise_for_status()
                 response_data = await response.json()
 
@@ -262,12 +264,54 @@ class EndpointAPI:
         """If puuid passed into method is None make it current user's puuid"""
         return self.puuid if puuid is None else puuid
 
+    def __format_region(self):
+        """
+        将地区格式化为符合要求的格式
+
+        Returns:
+            None
+        """
+
+        # 地区到分区的映射关系
+        region_shard_override = {
+            "latam": "na",
+            "br": "na",
+        }
+
+        # 分区到地区的映射关系
+        shard_region_override = {"pbe": "na"}
+
+        # 将 self.shard 设置为 self.region 的初始值
+        self.shard = self.region
+
+        # 如果 self.region 在 region_shard_override 的键中
+        if self.region in region_shard_override:
+            # 将 self.shard 设置为对应的分区
+            self.shard = region_shard_override[self.region]
+
+        # 如果 self.shard 在 shard_region_override 的键中
+        if self.shard in shard_region_override:
+            # 将 self.region 设置为对应的地区
+            self.region = shard_region_override[self.shard]
+
     def __build_urls(self):
         """
-        generate URLs based on region/shard
+        根据地区/分区生成URL
+
+        根据地区和分区生成相应的URL
+
+        Args:
+            None
+
+        Returns:
+            None
         """
+
+        # 基于分区构建URL
         self.pd = base_endpoint.format(shard=self.shard)
         self.shared = base_endpoint_shared.format(shard=self.shard)
+
+        # 基于地区和分区构建URL
         self.glz = base_endpoint_glz.format(region=self.region, shard=self.shard)
 
     def __build_headers(self, headers) -> Mapping[str, Any]:
@@ -276,12 +320,3 @@ class EndpointAPI:
         headers["X-Riot-ClientPlatform"] = self.client_platform
         headers["X-Riot-ClientVersion"] = get_client_version()
         return headers
-
-    def __format_region(self) -> None:
-        """Format region to match from user input"""
-
-        self.shard = self.region
-        if self.region in region_shard_override.keys():
-            self.shard = region_shard_override[self.region]
-        if self.shard in shard_region_override.keys():
-            self.region = shard_region_override[self.shard]
