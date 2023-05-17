@@ -1,10 +1,9 @@
-from __future__ import annotations
-
 from typing import Optional, Dict, Any
 
 import aiohttp
 
 from nonebot_plugin_valorant.config import plugin_config
+from nonebot_plugin_valorant.utils.errors import ResponseError
 
 # ------------------- #
 # credit https://github.com/colinhartigan/
@@ -79,7 +78,7 @@ def get_item_type(uuid: str) -> Optional[str]:
     return item_type.get(uuid)
 
 
-async def __url_to_image(url) -> Optional[bytes]:
+async def url_to_image(url) -> Optional[bytes]:
     """从指定的URL获取图片并返回其字节。
     Args:
     url: 要获取图片的URL。
@@ -93,39 +92,63 @@ async def __url_to_image(url) -> Optional[bytes]:
                 return await response.read()
 
 
-async def fetch_json_data(
-    data: str, proxy=plugin_config.valorant_proxies
-) -> Optional[Dict]:
-    """使用 aiohttp 从 valorant-api.com 获取 JSON 数据。
+async def get_request_json_data(
+        url: str, headers: Dict = None, proxy: object = plugin_config.valorant_proxies
+) -> Dict:
+    """使用 aiohttp 从指定 URL 获取 JSON 数据。
 
     Args:
-        data: 要获取数据的相对链接。
-        proxy: plugin_config中的代理配置项
+        url: 要获取数据的 URL。
+        headers: 请求的头部信息。
+        proxy: 可选参数，代理配置项。
 
     Returns:
         如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据，否则返回 None。
     """
-
-    base_url = "https://valorant-api.com/v1/"
-    url = f"{base_url}{data}"
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, proxy=proxy) as resp:
+            async with session.get(url, proxy=proxy, headers=headers) as resp:
                 if resp.status == 200:
                     return await resp.json()
     except aiohttp.ClientError as e:
-        print(f"获取 JSON 数据时发生错误：{e}")
-    return None
+        raise ResponseError("errors.API.REQUEST_FAILED") from e
 
 
-async def get_manifest_id() -> Optional[str]:
-    """获取最新的 VALORANT 版本号。
+async def put_request_json_data(
+        url: str,
+        data: [dict, list] = None,
+        headers: Dict = None,
+        proxy: object = plugin_config.valorant_proxies,
+) -> Dict:
+    """使用 aiohttp 发送 PUT 请求并获取 JSON 数据。
+
+    Args:
+        url: 要发送请求的 URL。
+        data: 发送到 API 的数据。
+        headers: 请求的头部信息。
+        proxy: 可选参数，代理配置项。
 
     Returns:
-        如果成功获取到最新的 VALORANT 版本号，则返回一个字符串类型的版本号，否则返回 None。
+        返回 API 的响应结果，如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据。
+
+    Raises:
+        ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
     """
-    resp = await fetch_json_data("version")
-    return resp["data"]["manifestId"]
+    if data is None:
+        data = {}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.put(
+                    url, headers=headers, json=data, proxy=proxy
+            ) as response:
+                response_data = await response.json()
+                if response_data is not None:
+                    return response_data
+                else:
+                    raise ResponseError("errors.API.REQUEST_FAILED")
+    except aiohttp.ClientError as e:
+        raise ResponseError("errors.API.REQUEST_FAILED") from e
 
 
 def parse_skin_data(skin_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -157,7 +180,7 @@ async def get_skin() -> Optional[Dict[str, Any]]:
         武器皮肤数据
     """
     try:
-        resp = await fetch_json_data("weapons/skins?language=all")
+        resp = await get_request_json_data("weapons/skins?language=all")
         if resp:
             skin_data = resp.get("data", [])
             return {
@@ -196,7 +219,7 @@ async def get_tier() -> Optional[Dict[str, Any]]:
         皮肤等级数据
     """
     try:
-        resp = await fetch_json_data("contenttiers/")
+        resp = await get_request_json_data("contenttiers/")
         if resp:
             tier_data = resp.get("data", [])
             return {
@@ -239,7 +262,7 @@ async def get_mission() -> Optional[Dict]:
         解析后的任务数据
     """
     try:
-        resp = await fetch_json_data("missions?language=all")
+        resp = await get_request_json_data("missions?language=all")
         if resp:
             missions = {}
             for mission_data in resp["data"]:
@@ -282,7 +305,7 @@ async def get_playercards() -> Optional[Dict]:
         玩家旗帜数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("playercards?language=all")
+        resp = await get_request_json_data("playercards?language=all")
         if resp:
             return {card["uuid"]: parse_playercard_data(card) for card in resp["data"]}
     except Exception as e:
@@ -317,7 +340,7 @@ async def get_player_titles() -> Optional[Dict]:
         玩家称号数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("playertitles?language=all")
+        resp = await get_request_json_data("playertitles?language=all")
         if resp:
             return {title["uuid"]: parse_title_data(title) for title in resp["data"]}
     except Exception as e:
@@ -352,7 +375,7 @@ async def get_spray() -> Optional[Dict]:
         喷漆数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("sprays?language=all")
+        resp = await get_request_json_data("sprays?language=all")
         if resp:
             return {spray["uuid"]: parse_spray_data(spray) for spray in resp["data"]}
     except Exception as e:
@@ -428,7 +451,7 @@ async def get_bundle() -> Optional[Dict]:
         套装数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("bundles?language=all")
+        resp = await get_request_json_data("bundles?language=all")
         if resp:
             bundles = {}
             for bundle_data in resp["data"]:
@@ -482,7 +505,7 @@ async def get_contract() -> Optional[Dict]:
         合同数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("contracts?language=all")
+        resp = await get_request_json_data("contracts?language=all")
         if resp:
             contracts = {}
             for contract_data in resp["data"]:
@@ -520,7 +543,7 @@ async def get_rank_tiers() -> Optional[Dict[str, Any]]:
         段位数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("competitivetiers?language=all")
+        resp = await get_request_json_data("competitivetiers?language=all")
         if resp:
             json = {}
             for rank in resp["data"]:
@@ -555,7 +578,7 @@ async def get_currencies() -> Optional[Dict]:
         货币数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("currencies?language=all")
+        resp = await get_request_json_data("currencies?language=all")
         if resp:
             return {
                 currency["uuid"]: parse_currency_data(currency)
@@ -593,7 +616,7 @@ async def get_buddies() -> Optional[Dict]:
         buddy数据，如果发生错误则返回None。
     """
     try:
-        resp = await fetch_json_data("buddies?language=all")
+        resp = await get_request_json_data("buddies?language=all")
         if resp:
             buddies = {}
             for buddy_data in resp["data"]:
@@ -631,7 +654,7 @@ async def get_skin_chromas() -> Optional[Dict[str, Dict[str, Any]]]:
         所有皮肤染色数据，如果发生错误则返回 None。
     """
     try:
-        resp = await fetch_json_data("weapons/skinchromas?language=all")
+        resp = await get_request_json_data("weapons/skinchromas?language=all")
         if resp:
             chromas = {}
             for chroma_data in resp["data"]:

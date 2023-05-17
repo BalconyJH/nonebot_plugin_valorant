@@ -1,32 +1,34 @@
-import aiohttp
-
-from nonebot_plugin_valorant.config import plugin_config
+from nonebot_plugin_valorant.utils.reqlib.request_res import get_json_data
 
 
-async def get_client_version():
+async def get_client_version() -> str:
     """
-    异步获取 Valorant 客户端版本信息
+    获取 Valorant 客户端版本信息。
 
     Returns:
-        str: 客户端版本信息，格式为 "<分支>-shipping-<构建版本>-<第四位版本号>"
+        str: 客户端版本信息，格式为 "<分支>-shipping-<构建版本>-<第四位版本号>"。
     """
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://valorant-api.com/v1/version", proxy=plugin_config.valorant_proxies) as response:
-            if response.status == 200:
-                data = await response.json()
-                return f"{data['data']['branch']}-shipping-{data['data']['buildVersion']}-{data['data']['version'].split('.')[3]}"
-    return None
+    data = await get_json_data("version")
+    return f"{data['data']['branch']}-shipping-{data['data']['buildVersion']}-{data['data']['version'].split('.')[3]}"
 
 
-async def get_valorant_version():
-    """异步获取 VALORANT 版本号
+async def get_valorant_version() -> str:
+    """
+    获取 VALORANT 版本号。
 
     Returns:
-        str: VALORANT 版本号，如果获取失败则返回 None
+        str: VALORANT 版本号。
     """
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://valorant-api.com/v1/version", proxy=plugin_config.valorant_proxies) as response:
-            if response.status == 200:
-                data = await response.json()
-                return data["data"]["version"]
-    return None
+    data = await get_json_data("version")
+    return data["data"]["version"]
+
+
+async def get_manifest_id():
+    """
+    获取最新的资源清单值。
+
+    Returns:
+        str: 资源清单值。
+    """
+    resp = await get_json_data("version")
+    return resp["data"]["manifestId"]
