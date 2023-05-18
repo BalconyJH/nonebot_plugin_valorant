@@ -9,7 +9,13 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.database.models import BaseModel, User, WeaponSkin, Tier
+from nonebot_plugin_valorant.database.models import (
+    BaseModel,
+    User,
+    WeaponSkin,
+    Tier,
+    Version,
+)
 from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 engine = create_engine(plugin_config.valorant_database)
@@ -115,6 +121,27 @@ class DB:
         """
         for uuid, tier_data in data.items():
             Tier.add(session, **tier_data)
+
+    @classmethod
+    async def cache_version(cls, data: Dict):
+        """
+        缓存版本信息。
+
+        参数:
+        - data: 版本数据字典，包含多个版本的信息
+        """
+        for version_id, version_data in data.items():
+            Version.add(version_id=version_id, **version_data)
+
+    @classmethod
+    def get_version(cls, version_id: str) -> str:
+        data = Version.get(session, version_id=version_id)
+        return data["version_id"]
+
+    @classmethod
+    def update_version(cls, version_id: str, **kwargs):
+        session.query(Version).filter_by(version_id=version_id).update(kwargs)
+        session.commit()
 
 
 # nonebot启动时初始化/关闭数据库

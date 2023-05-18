@@ -112,6 +112,8 @@ class Version(BaseModel):
 
     bot_version: Mapped[str] = mapped_column(String(255), primary_key=True)
 
+    manifest_id: Mapped[str] = mapped_column(String(255))
+
     def __repr__(self):
         return f"<Version(valorant_client_version='{self.valorant_client_version}', bot_version='{self.bot_version}')>"
 
