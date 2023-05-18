@@ -38,6 +38,7 @@ class EndpointAPI:
             raise HandshakeError("errors.API.FAILED_ACTIVE") from e
 
         # client platform
+        # noinspection SpellCheckingInspection
         self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
 
         # language
@@ -132,13 +133,14 @@ class EndpointAPI:
         return self.put(endpoint="/name-service/v2/players", url="pd", data=puuid)
 
     def fetch_player_loadout(self) -> dict:
+        # noinspection SpellCheckingInspection
         """
-        playerLoadoutUpdate
-        获取玩家当前的装备设置。
+                playerLoadoutUpdate
+                获取玩家当前的装备设置。
 
-        Returns:
-            dict: 包含玩家当前装备设置的响应结果。
-        """
+                Returns:
+                    dict: 包含玩家当前装备设置的响应结果。
+                """
         return self.put(
             endpoint=f"/personalization/v2/players/{self.puuid}/playerloadout",
             url="pd",
@@ -195,21 +197,21 @@ class EndpointAPI:
         return self.fetch(f"/store/v1/order/{order_id}", url="pd")
 
     def store_fetch_entitlements(self, item_type: Mapping) -> Mapping[str, Any]:
-        """
-        Store_GetEntitlements
-        List what the player owns (agents, skins, buddies, ect.)
-        Correlate with the UUIDs in `fetch_content` to know what items are owned.
-        Category names and IDs:
+        # noinspection SpellCheckingInspection
+        """Store_GetEntitlements
+        获取玩家拥有的物品列表（特务、皮肤、挂饰）。
+        通过与 fetch_content 中的 UUID 相关联，了解拥有的物品。
+        类别名称和 ID：
 
-        `ITEMTYPEID:`
-        '01bb38e1-da47-4e6a-9b3d-945fe4655707': 'Agents'\n
-        'f85cb6f7-33e5-4dc8-b609-ec7212301948': 'Contracts',\n
-        'd5f120f8-ff8c-4aac-92ea-f2b5acbe9475': 'Sprays',\n
-        'dd3bf334-87f3-40bd-b043-682a57a8dc3a': 'Gun Buddies',\n
-        '3f296c07-64c3-494c-923b-fe692a4fa1bd': 'Player Cards',\n
-        'e7c63390-eda7-46e0-bb7a-a6abdacd2433': 'Skins',\n
-        '3ad1b2b2-acdb-4524-852f-954a76ddae0a': 'Skins chroma',\n
-        'de7caa6b-adf7-4588-bbd1-143831e786c6': 'Player titles',\n
+        ITEMTYPEID:
+        '01bb38e1-da47-4e6a-9b3d-945fe4655707': '特务'\n
+        'f85cb6f7-33e5-4dc8-b609-ec7212301948': '契约',\n
+        'd5f120f8-ff8c-4aac-92ea-f2b5acbe9475': '喷漆',\n
+        'dd3bf334-87f3-40bd-b043-682a57a8dc3a': '枪挂饰',\n
+        '3f296c07-64c3-494c-923b-fe692a4fa1bd': '玩家卡片',\n
+        'e7c63390-eda7-46e0-bb7a-a6abdacd2433': '皮肤',\n
+        '3ad1b2b2-acdb-4524-852f-954a76ddae0a': '皮肤染色',\n
+        'de7caa6b-adf7-4588-bbd1-143831e786c6': '玩家称号',\n
         """
         return self.fetch(
             endpoint=f"/store/v1/entitlements/{self.puuid}/{item_type}", url="pd"

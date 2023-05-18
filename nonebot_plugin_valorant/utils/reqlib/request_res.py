@@ -134,8 +134,7 @@ async def put_request_json_data(
     Raises:
         ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
     """
-    if data is None:
-        data = {}
+    data = data if data is not None else {}
 
     try:
         async with aiohttp.ClientSession() as session:

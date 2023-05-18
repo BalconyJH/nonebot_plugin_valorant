@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.database.models import BaseModel, User
+from nonebot_plugin_valorant.database.models import BaseModel, User, WeaponSkin, Tier
 from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 engine = create_engine(plugin_config.valorant_database)
@@ -89,10 +89,32 @@ class DB:
         """
         data = User.get(session, qq_uid=qq_uid)
         if datetime.now(timezone.utc) > data["expiry_token"]:
-            access_token, entitlements_token = await Auth().refresh_token(data["cookie"])
+            access_token, entitlements_token = await Auth().refresh_token(
+                data["cookie"]
+            )
             data["access_token"] = access_token
             data["entitlements_token"] = entitlements_token
         return data
+
+    @classmethod
+    async def cache_skin(cls, data: Dict):
+        """
+        缓存商店信息。
+
+        参数:
+        """
+        for uuid, skin_data in data.items():
+            WeaponSkin.add(session, **skin_data)
+
+    @classmethod
+    async def cache_tier(cls, data: Dict):
+        """
+        缓存段位信息。
+
+        参数:
+        """
+        for uuid, tier_data in data.items():
+            Tier.add(session, **tier_data)
 
 
 # nonebot启动时初始化/关闭数据库
