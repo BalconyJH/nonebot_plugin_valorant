@@ -1,3 +1,5 @@
+from typing import Dict
+
 from sqlalchemy import String, Column, func, DateTime, JSON, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column
@@ -36,6 +38,20 @@ class BaseModel(Base):
             return True
         return False
 
+    @classmethod
+    def matches_data(cls, data: Dict):
+        # 比较逻辑，根据 UUID 进行比较
+        return data.get("uuid") == str(cls.uuid)
+
+    @classmethod
+    def merge(cls, session, **kwargs):
+        query = cls.get(session, uuid=kwargs["uuid"])
+        if query.count():
+            query.update(kwargs)
+            session.commit()
+        else:
+            cls.add(session, **kwargs)
+
 
 class User(BaseModel):
     """用户模型类
@@ -49,16 +65,16 @@ class User(BaseModel):
     """str: 用户的唯一标识符，作为主键。"""
 
     cookie: Mapped[JSON] = mapped_column(JSON)
-    """str: 用户的cookie。"""
+    """JSON: 用户的cookie。"""
 
     access_token: Mapped[Text] = mapped_column(Text)
-    """str: 用户的access token。"""
+    """Text: 用户的access token。"""
 
     token_id: Mapped[Text] = mapped_column(Text)
-    """str: 用户的token id。"""
+    """Text: 用户的token id。"""
 
     emt: Mapped[Text] = mapped_column(Text)
-    """str: 用户的entitlements_token。"""
+    """Text: 用户的entitlements_token。"""
 
     username: Mapped[str] = mapped_column(String(255))
     """str: 用户的用户名。"""
@@ -93,7 +109,7 @@ class WeaponSkin(BaseModel):
     """str: 武器皮肤的唯一标识符，作为主键。"""
 
     names: Mapped[JSON] = mapped_column(JSON)
-    """str: 武器皮肤的名称。"""
+    """JSON: 武器皮肤的名称。"""
 
     icon: Mapped[str] = mapped_column(String(255))
     """str: 武器皮肤的图标。"""
@@ -107,21 +123,46 @@ class WeaponSkin(BaseModel):
 
 class Version(BaseModel):
     __tablename__ = "version"
+    """
+        "manifestId": "4CDFEE53A361DD60",
+        "branch": "release-06.08",
+        "version": "06.08.00.875485",
+        "buildVersion": "19",
+        "engineVersion": "4.26.2.0",
+        "riotClientVersion": "release-06.08-shipping-19-875485",
+        "riotClientBuild": "65.0.2.5073401.749",
+        "buildDate": "2023-05-04T00:00:00Z",
+    """
 
-    client_version: Mapped[str] = mapped_column(String(255))
-    """str: 客戶端版本号"""
+    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
+    """str: 游戏版本的唯一标识符，作为主键。"""
 
-    client_info: Mapped[str] = mapped_column(String(255))
-    """str: 客戶端版本信息"""
+    manifestId: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的manifestId。"""
 
-    bot_version: Mapped[str] = mapped_column(String(255), primary_key=True)
-    """str: 机器人版本号"""
+    branch: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的branch。"""
 
-    manifest_id: Mapped[str] = mapped_column(String(255))
-    """str: 资源清单值"""
+    version: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的version。"""
+
+    buildVersion: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的buildVersion。"""
+
+    engineVersion: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的engineVersion。"""
+
+    riotClientVersion: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的riotClientVersion。"""
+
+    riotClientBuild: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的riotClientBuild。"""
+
+    buildDate: Mapped[str] = mapped_column(String(255))
+    """str: 游戏版本的buildDate。"""
 
     def __repr__(self):
-        return f"<Version(valorant_client_version='{self.valorant_client_version}', bot_version='{self.bot_version}')>"
+        return f"<Version(uuid='{self.uuid}', manifestId='{self.manifestId}', branch='{self.branch}', version='{self.version}', buildVersion='{self.buildVersion}', engineVersion='{self.engineVersion}', riotClientVersion='{self.riotClientVersion}', riotClientBuild='{self.riotClientBuild}', buildDate='{self.buildDate}')>"
 
 
 class Tier(BaseModel):

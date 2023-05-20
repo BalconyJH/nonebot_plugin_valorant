@@ -1,10 +1,11 @@
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent
+from nonebot.exception import FinishedException
 from nonebot.log import logger
 from nonebot.params import ArgPlainText, T_State
 from nonebot.permission import SUPERUSER
 
-from nonebot_plugin_valorant.plugins.store.cache import cache_store
+from nonebot_plugin_valorant.utils.cache import cache_store
 from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 store = on_command("store", aliases={"商店"}, priority=5, block=True)
@@ -32,6 +33,8 @@ async def _force_refresh(
     try:
         await cache_store()
         await force_refresh.finish("刷新成功")
+    except FinishedException:
+        pass
     except Exception as e:
         await force_refresh.finish(f"刷新失败{e}")
         logger.warning(f"刷新失败{e}")

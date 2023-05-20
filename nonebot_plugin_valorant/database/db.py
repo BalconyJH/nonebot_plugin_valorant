@@ -126,7 +126,10 @@ class DB:
         参数:
         """
         for uuid, skin_data in data.items():
-            WeaponSkin.add(session, **skin_data)
+            existing_skin = WeaponSkin.get(session, uuid=uuid).first()  # 查询现有数据
+            if existing_skin and existing_skin.matches_data(skin_data):  # 检查数据是否相同
+                continue  # 数据已存在且相同，跳过添加逻辑
+            WeaponSkin.merge(session, **skin_data)
 
     @classmethod
     async def cache_tier(cls, data: Dict):
@@ -136,18 +139,21 @@ class DB:
         参数:
         """
         for uuid, tier_data in data.items():
-            Tier.add(session, **tier_data)
+            existing_tier = Tier.get(session, uuid=uuid).first()  # 查询现有数据
+            if existing_tier and existing_tier.matches_data(tier_data):  # 检查数据是否相同
+                continue  # 数据已存在且相同，跳过添加逻辑
+            Tier.merge(session, **tier_data)
 
-    @classmethod
-    async def cache_version(cls, data: Dict):
-        """
-        缓存版本信息。
-
-        参数:
-        - data: 版本数据字典，包含多个版本的信息
-        """
-        for version, version_data in data.items():
-            Version.add(session, **version_data)
+    # @classmethod
+    # async def cache_version(cls, data: Dict):
+    #     """
+    #     缓存版本信息。
+    #
+    #     参数:
+    #     - data: 版本数据字典，包含多个版本的信息
+    #     """
+    #     for version_data in data:
+    #
 
     @classmethod
     async def get_version(cls, version_fields) -> dict[Any, Any]:
