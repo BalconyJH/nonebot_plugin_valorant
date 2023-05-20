@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Dict, Any
 
 import aiohttp
@@ -7,7 +8,7 @@ from nonebot_plugin_valorant.utils.errors import ResponseError
 
 # ------------------- #
 # credit https://github.com/colinhartigan/
-
+base_url = "https://valorant-api.com/v1/"
 base_endpoint = "https://pd.{shard}.a.pvp.net"
 base_endpoint_glz = "https://glz-{region}-1.{shard}.a.pvp.net"
 base_endpoint_shared = "https://shared.{shard}.a.pvp.net"
@@ -93,11 +94,15 @@ async def url_to_image(url) -> Optional[bytes]:
 
 
 async def get_request_json_data(
-        url: str, headers: Dict = None, proxy: object = plugin_config.valorant_proxies
+        url: str,
+        headers: Dict = None,
+        proxy: object = plugin_config.valorant_proxies,
+        sub_url: Optional[str] = "",
 ) -> Dict:
     """使用 aiohttp 从指定 URL 获取 JSON 数据。
 
     Args:
+        sub_url: 要获取数据的 URL。
         url: 要获取数据的 URL。
         headers: 请求的头部信息。
         proxy: 可选参数，代理配置项。
@@ -105,6 +110,7 @@ async def get_request_json_data(
     Returns:
         如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据，否则返回 None。
     """
+    url = f"{url}{sub_url}"
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, proxy=proxy, headers=headers) as resp:
@@ -165,10 +171,10 @@ def parse_skin_data(skin_data: Dict[str, Any]) -> Dict[str, Any]:
     skin_tier = skin_data["contentTierUuid"]
 
     return {
-        "uuid": skin_uuid,
+        "uuid": json.dumps(skin_uuid),
         "names": skin_names,
         "icon": skin_icon,
-        "tier": skin_tier,
+        "tier": skin_tier if skin_tier is not None else "None",
     }
 
 
@@ -179,7 +185,9 @@ async def get_skin() -> Optional[Dict[str, Any]]:
         武器皮肤数据
     """
     try:
-        resp = await get_request_json_data("weapons/skins?language=all")
+        resp = await get_request_json_data(
+            url=base_url, sub_url="weapons/skins?language=all"
+        )
         if resp:
             skin_data = resp.get("data", [])
             return {
@@ -218,7 +226,7 @@ async def get_tier() -> Optional[Dict[str, Any]]:
         皮肤等级数据
     """
     try:
-        resp = await get_request_json_data("contenttiers/")
+        resp = await get_request_json_data(url=base_url, sub_url="contenttiers/")
         if resp:
             tier_data = resp.get("data", [])
             return {
@@ -261,7 +269,9 @@ async def get_mission() -> Optional[Dict]:
         解析后的任务数据
     """
     try:
-        resp = await get_request_json_data("missions?language=all")
+        resp = await get_request_json_data(
+            url=base_url, sub_url="missions?language=all"
+        )
         if resp:
             missions = {}
             for mission_data in resp["data"]:

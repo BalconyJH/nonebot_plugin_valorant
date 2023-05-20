@@ -445,7 +445,7 @@ class Auth:
         # 否则引发 AuthenticationError。
         raise AuthenticationError(message_translator("输入的 2FA 验证码无效"))
 
-    async def redeem_cookies(self, cookies: Dict) -> Dict[str, (str, dict)]:
+    async def redeem_cookies(self, cookies: Dict) -> Dict[str, Tuple[str, Dict]]:
         """
         该函数用于兑换 cookies。
 
@@ -480,11 +480,11 @@ class Auth:
         ) as r:
             data = await r.text()
 
-        # 如果 HTTP 状态码不为 303 或者响应的 Location 以 /login 开头则说明 cookies 过期，抛出 AuthenticationError
+        # 如果 HTTP 状态码不为 303 或者响应的 Location 以 /auth 开头则说明 cookies 过期，抛出 AuthenticationError
         if r.status != 303:
             raise AuthenticationError(message_translator("COOKIES_EXPIRED"))
 
-        if r.headers["Location"].startswith("/login"):
+        if r.headers["Location"].startswith("/auth"):
             raise AuthenticationError(message_translator("COOKIES_EXPIRED"))
 
         # 复制原有 cookies

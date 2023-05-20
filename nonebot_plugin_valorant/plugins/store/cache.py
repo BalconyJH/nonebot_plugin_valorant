@@ -22,22 +22,19 @@ async def cache_store():
 
 
 async def cache_manifest_id():
-    return await DB.get_version("version_id")
+    return await DB.get_version("manifest_id")
 
 
-db_cache = await cache_manifest_id()
-
-
-@scheduler.scheduled_job("cron", hour="*/1")
-async def determine_cache_timeliness():
+@scheduler.scheduled_job("cron", hour="*/1", id="refresh_store")
+async def refresh_store():
     """
     比对资源清单值判断缓存时效性
 
     """
+    db_cache = await cache_manifest_id()
     manifest_id = await get_manifest_id()
     if db_cache != manifest_id:
         await cache_store()
-        await DB.update_version("version_id", manifest_id=manifest_id)
+        await DB.update_version("manifest_id", manifest_id=manifest_id)
         with suppress(ResponseError):
-            await DB.cache_skin(await get_skin())
-            await DB.cache_tier(await get_tier())
+            await cache_store()

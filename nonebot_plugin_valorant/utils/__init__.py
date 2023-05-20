@@ -1,8 +1,9 @@
 import aiohttp
+from cryptography.fernet import Fernet
 from nonebot import on_command as _on_command, require
-from sqlalchemy.exc import OperationalError
 
 from nonebot_plugin_valorant.config import plugin_config
+from nonebot_plugin_valorant.plugins.store.cache import cache_store
 from .errors import AuthenticationError, DatabaseError
 from ..database import DB
 from ..database.db import engine
@@ -23,7 +24,7 @@ async def check_proxy():
                     timeout=2,
                 ):
                     pass
-            except aiohttp.ClientError as e:
+            except Exception as e:
                 raise RuntimeError("代理无效，请检查代理") from e
 
 
@@ -32,15 +33,24 @@ async def check_db():
     try:
         await DB.init()
         await engine.connect()
-    except OperationalError as e:
+    except Exception as e:
         raise DatabaseError("数据库无效，请检查数据库") from e
     await engine.dispose()  # 关闭数据库连接
 
 
-def on_startup():
+async def generate_database_key():
+    key = Fernet.generate_key()
+    # 在nonebot_plugin_valorant/resources/cache创建一个conf.yaml文件保存key
+    with open("nonebot_plugin_valorant/resources/cache/conf.yaml", "w") as f:
+        f.write(f'key: "{key.decode()}"')
+
+
+async def on_startup():
     """启动前检查"""
-    check_proxy()
-    check_db()
+    await check_proxy()
+    await check_db()
+    await cache_store()
+    await generate_database_key()
 
 
 require("nonebot_plugin_apscheduler")

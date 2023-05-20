@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
-from typing import Dict
+from typing import Dict, Any
 
+from cryptography.fernet import Fernet
 from nonebot import get_driver
 from nonebot.log import logger
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
@@ -21,6 +22,21 @@ from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 engine = create_engine(plugin_config.valorant_database)
 Session = sessionmaker(bind=engine)
 session = Session()
+
+# 生成密钥
+key = Fernet.generate_key()
+
+cipher_suite = Fernet(key)
+
+
+# 加密数据
+def encrypt_data(data):
+    return cipher_suite.encrypt(data.encode())
+
+
+# 解密数据
+def decrypt_data(encrypted_data):
+    return cipher_suite.decrypt(encrypted_data).decode()
 
 
 class DB:
@@ -130,18 +146,38 @@ class DB:
         参数:
         - data: 版本数据字典，包含多个版本的信息
         """
-        for version_id, version_data in data.items():
-            Version.add(version_id=version_id, **version_data)
+        for version, version_data in data.items():
+            Version.add(session, **version_data)
 
     @classmethod
-    def get_version(cls, version_id: str) -> str:
-        data = Version.get(session, version_id=version_id)
-        return data["version_id"]
+    async def get_version(cls, version_fields) -> dict[Any, Any]:
+        """
+        查询版本信息。
+
+        参数:
+        - session: 数据库会话对象
+        - version_fields: 版本字段列表，包含要查询的版本字段名
+
+        返回:
+        - 查询结果的字典，键为版本字段名，值为对应的内容
+        """
+        query = select(*version_fields).select_from(Version)
+        result = session.execute(query)
+        rows = result.fetchall()
+
+        version_data = {}
+        for row in rows:
+            version_entry = dict(row)
+            version_data |= version_entry
+
+        return version_data
 
     @classmethod
-    def update_version(cls, version_id: str, **kwargs):
-        session.query(Version).filter_by(version_id=version_id).update(kwargs)
-        session.commit()
+    def update_version(cls, version_fields, **kwargs):
+        query = Version.get(session, **version_fields)
+        if query.count():
+            query.update(kwargs)
+            session.commit()
 
 
 # nonebot启动时初始化/关闭数据库

@@ -92,7 +92,7 @@ class WeaponSkin(BaseModel):
     uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
     """str: 武器皮肤的唯一标识符，作为主键。"""
 
-    names: Mapped[str] = mapped_column(String(255))
+    names: Mapped[JSON] = mapped_column(JSON)
     """str: 武器皮肤的名称。"""
 
     icon: Mapped[str] = mapped_column(String(255))
@@ -108,11 +108,17 @@ class WeaponSkin(BaseModel):
 class Version(BaseModel):
     __tablename__ = "version"
 
-    valorant_client_version: Mapped[str] = mapped_column(String(255))
+    client_version: Mapped[str] = mapped_column(String(255))
+    """str: 客戶端版本号"""
+
+    client_info: Mapped[str] = mapped_column(String(255))
+    """str: 客戶端版本信息"""
 
     bot_version: Mapped[str] = mapped_column(String(255), primary_key=True)
+    """str: 机器人版本号"""
 
     manifest_id: Mapped[str] = mapped_column(String(255))
+    """str: 资源清单值"""
 
     def __repr__(self):
         return f"<Version(valorant_client_version='{self.valorant_client_version}', bot_version='{self.bot_version}')>"

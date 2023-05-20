@@ -44,7 +44,7 @@ class EndpointAPI:
         # language
         self.locale_code = "en-US"
 
-    def fetch(self, endpoint: str = "/", url: str = "pd") -> Dict:
+    async def fetch(self, endpoint: str = "/", url: str = "pd") -> Dict:
         """从 API 获取数据。
 
         Args:
@@ -60,7 +60,7 @@ class EndpointAPI:
             f"{endpoint_url}{endpoint}", headers=self.headers
         )
 
-    def put(
+    async def put(
             self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None
     ) -> dict:
         """
