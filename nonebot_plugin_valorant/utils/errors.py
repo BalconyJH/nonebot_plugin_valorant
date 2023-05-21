@@ -1,6 +1,6 @@
 from typing import Union
 
-from nonebot import Bot
+from nonebot.adapters import Bot
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from nonebot.exception import FinishedException
 

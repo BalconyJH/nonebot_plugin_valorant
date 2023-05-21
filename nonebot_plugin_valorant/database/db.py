@@ -187,5 +187,5 @@ class DB:
 
 
 # nonebot启动时初始化/关闭数据库
-get_driver().on_startup(DB.init)
+# get_driver().on_startup(DB.init)
 get_driver().on_shutdown(DB.close)

@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.utils.errors import AuthenticationError
-from nonebot_plugin_valorant.utils.reqlib.auth import Auth
+from ...utils.reqlib.auth import Auth
 
 login = on_command("auth", aliases={"登录"}, priority=5, block=True)
 auth = Auth()
