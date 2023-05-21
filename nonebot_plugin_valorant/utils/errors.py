@@ -5,14 +5,15 @@ from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageE
 from nonebot.exception import FinishedException
 
 
-
-async def send_error_msg(bot: Bot, event: Union[GroupMessageEvent, PrivateMessageEvent], error_message: str):
+async def send_error_msg(
+        bot: Bot, event: Union[GroupMessageEvent, PrivateMessageEvent], error_message: str
+):
     """
     发送错误消息的异步函数。
 
     Args:
         bot (Bot): 机器人对象。
-        event (Union[GroupMessageEvent, PrivateMessageEvent]): 事件对象，可能是 GroupMessageEvent 或 PrivateMessageEvent。
+        event (Union[GroupMessageEvent, PrivateMessageEvent]): 事件对象。
         error_message (str): 错误消息。
 
     Returns:
@@ -98,5 +99,4 @@ class DatabaseError(TranslatableError):
 
 
 class FileExistError(TranslatableError):
-
     pass

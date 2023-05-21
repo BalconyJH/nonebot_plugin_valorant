@@ -11,5 +11,5 @@ if isinstance(globals()["__loader__"], PluginLoader):
     config = Config.parse_obj(global_config)
     # from .utils import on_startup
 
-asyncio.run(on_startup())
+    asyncio.get_event_loop().run_until_complete(on_startup())
 from . import plugins  # noqa: F401

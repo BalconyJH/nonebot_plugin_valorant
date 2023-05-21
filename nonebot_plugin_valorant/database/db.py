@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import Dict, Any
 
 from cryptography.fernet import Fernet
@@ -7,6 +6,7 @@ from nonebot.log import logger
 from sqlalchemy import create_engine, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.query import Query
 from sqlalchemy_utils import database_exists, create_database
 
 from nonebot_plugin_valorant.config import plugin_config
@@ -17,7 +17,6 @@ from nonebot_plugin_valorant.database.models import (
     Tier,
     Version,
 )
-from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 engine = create_engine(plugin_config.valorant_database)
 Session = sessionmaker(bind=engine)
@@ -99,7 +98,7 @@ class DB:
         # todo 级联删除用户的所有数据(shop, user, misson, etc.)
 
     @classmethod
-    async def get_user(cls, qq_uid: str) -> Dict:
+    async def get_user(cls, qq_uid: str) -> Query:
         """
         获取用户信息。
 
@@ -109,14 +108,7 @@ class DB:
         返回值:
         - user: 用户信息(Dict)。
         """
-        data = User.get(session, qq_uid=qq_uid)
-        if datetime.now(timezone.utc) > data["expiry_token"]:
-            access_token, entitlements_token = await Auth().refresh_token(
-                data["cookie"]
-            )
-            data["access_token"] = access_token
-            data["entitlements_token"] = entitlements_token
-        return data
+        return User.get(session, qq_uid=qq_uid)
 
     @classmethod
     async def cache_skin(cls, data: Dict):
@@ -167,23 +159,21 @@ class DB:
         返回:
         - 查询结果的字典，键为版本字段名，值为对应的内容
         """
-        query = select(*version_fields).select_from(Version)
-        result = session.execute(query)
-        rows = result.fetchall()
-
-        version_data = {}
-        for row in rows:
-            version_entry = dict(row)
-            version_data |= version_entry
-
-        return version_data
+        return Version.get(session, **version_fields)
 
     @classmethod
-    def update_version(cls, version_fields, **kwargs):
-        query = Version.get(session, **version_fields)
-        if query.count():
-            query.update(kwargs)
-            session.commit()
+    async def update_version(cls, **kwargs):
+        """
+        更新版本信息。
+
+        参数:
+        - kwargs: 包含版本信息的关键字参数。
+        """
+        Version.update(session, **kwargs)
+
+    @classmethod
+    async def init_version(cls, **kwargs):
+        Version.add(session, **kwargs)
 
 
 # nonebot启动时初始化/关闭数据库

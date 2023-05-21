@@ -9,7 +9,9 @@ from nonebot_plugin_valorant.utils.cache import cache_store
 from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 store = on_command("store", aliases={"商店"}, priority=5, block=True)
-force_refresh = on_command("force_refresh", aliases={"强制刷新"}, priority=5, block=True, permission=SUPERUSER)
+force_refresh = on_command(
+    "force_refresh", aliases={"强制刷新"}, priority=5, block=True, permission=SUPERUSER
+)
 auth = Auth()
 
 store.handle()
@@ -35,6 +37,6 @@ async def _force_refresh(
         await force_refresh.finish("刷新成功")
     except FinishedException:
         pass
-    except Exception as e:
-        await force_refresh.finish(f"刷新失败{e}")
-        logger.warning(f"刷新失败{e}")
+    except Exception as err:
+        await force_refresh.finish(f"刷新失败{err}")
+        logger.warning(f"刷新失败{err}")

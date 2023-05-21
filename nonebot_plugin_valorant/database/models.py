@@ -12,7 +12,8 @@ class BaseModel(Base):
 
     @classmethod
     def get(cls, session, **kwargs):
-        return session.query(cls).filter_by(**kwargs)
+        query = session.query(cls).filter_by(**kwargs)
+        return query.first()
 
     @classmethod
     def add(cls, session, **kwargs):
@@ -62,7 +63,7 @@ class User(BaseModel):
     __tablename__ = "user"
 
     puuid: Mapped[str] = mapped_column(String(255))
-    """str: 用户的唯一标识符，作为主键。"""
+    """str: 用户的唯一标识符"""
 
     cookie: Mapped[JSON] = mapped_column(JSON)
     """JSON: 用户的cookie。"""
@@ -78,9 +79,6 @@ class User(BaseModel):
 
     username: Mapped[str] = mapped_column(String(255))
     """str: 用户的用户名。"""
-
-    expiry_token: Mapped[str] = mapped_column(String(255))
-    """str: 用户的token过期时间。"""
 
     region: Mapped[str] = mapped_column(String(255))
     """str: 用户所在的地区。"""
@@ -134,10 +132,7 @@ class Version(BaseModel):
         "buildDate": "2023-05-04T00:00:00Z",
     """
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    """str: 游戏版本的唯一标识符，作为主键。"""
-
-    manifestId: Mapped[str] = mapped_column(String(255))
+    manifestId: Mapped[str] = mapped_column(String(255), primary_key=True)
     """str: 游戏版本的manifestId。"""
 
     branch: Mapped[str] = mapped_column(String(255))

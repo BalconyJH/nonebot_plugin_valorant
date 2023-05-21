@@ -218,7 +218,7 @@ class Auth:
         await session.close()
         # 请求过多返回"error" = "rate_limited"
         if data.get("error") == "rate_limited":
-            raise AuthenticationError("RATELIMIT，请等待几分钟并重试。")
+            raise AuthenticationError(message_translator("验证次数过多，请等待几分钟并重试。"))
         # 处理身份验证响应。
         if data["type"] == "response":
             # 如果身份验证成功，则从响应中提取令牌。
@@ -242,7 +242,7 @@ class Auth:
         elif data["type"] == "multifactor":
             if response.status == 429:
                 # 如果用户发送了太多请求，请引发 AuthenticationError。
-                raise AuthenticationError(message_translator("RATELIMIT，请等待几分钟并重试。"))
+                raise AuthenticationError(message_translator("验证次数过多，请等待几分钟并重试。"))
 
             method = data["multifactor"]["method"]
             if method == "email":
@@ -609,10 +609,11 @@ class Auth:
             "emt": entitlements_token,
         }
 
-    async def refresh_token(self, cookies: Dict) -> Tuple[str, str]:
+    async def refresh_token(self, cookies: Dict) -> tuple[tuple[str, dict], tuple[str, dict], tuple[str, dict]]:
         data = await self.redeem_cookies(cookies)
-        access_token, entitlements_token = (
+        access_token, entitlements_token, cookies = (
             data["access_token"],
             data["entitlements_token"],
+            data["cookies"],
         )
-        return access_token, entitlements_token
+        return access_token, entitlements_token, cookies

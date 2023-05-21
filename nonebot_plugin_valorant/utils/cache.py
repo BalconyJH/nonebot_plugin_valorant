@@ -27,18 +27,19 @@ async def cache_version():
         None
 
     """
-    DB.update_version(await get_version_data())
+    data = await get_version_data()
+    await DB.update_version(**data)
     logger.info("版本信息缓存完成")
 
 
-async def cache_manifest_id():
-    """
-    缓存资源清单值
-    Returns:
-        None
-
-    """
-    return await DB.update_version("manifest_id", manifest_id=await get_manifest_id())
+# async def cache_manifest_id():
+#     """
+#     缓存资源清单值
+#     Returns:
+#         None
+#
+#     """
+#     return await DB.update_version("manifest_id", manifest_id=await get_manifest_id())
 
 
 async def init_cache():
