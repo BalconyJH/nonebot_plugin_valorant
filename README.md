@@ -1,5 +1,7 @@
 # nonebot_plugin_valorant
+
 ## 急速开发中
+
 ## How to start
 
 1. generate project using `nb create` .
@@ -7,9 +9,15 @@
 3. writing your plugins under `src/plugins` folder.
 4. run your bot using `nb run --reload` .
 
+# 項目未完成(未經測試),不要嘗試加載
+
+# 我知道你很急，但是你先别急，要急也是我先急
+
+# Project is incomplete (untested), do not try to load
+
 ## Documentation
 
-See [Docs](https://v2.nonebot.dev/)
+還沒寫
 
 ## 🧷 备注
 
