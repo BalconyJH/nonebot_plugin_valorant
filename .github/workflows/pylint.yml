@@ -19,7 +19,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pdm
         pdm install
-        pip install pylint
     - name: Analysing the code with pylint
       run: |
+        eval $(pdm venv activate in-project)
         pylint $(git ls-files '*.py')
