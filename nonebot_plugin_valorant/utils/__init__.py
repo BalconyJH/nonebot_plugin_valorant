@@ -43,15 +43,25 @@ async def check_db():
     logger.info("数据库连接成功")
 
 
-async def generate_database_key():
-    key = Fernet.generate_key()
-    try:
-        with open("nonebot_plugin_valorant/resources/cache/conf.yaml", "w") as f:
-            f.write(f'key: "{key.decode()}"')
-    except FileNotFoundError:
-        logger.warning("未找到配置文件")
+async def generate_database_key(key_path: str=plugin_config.valorant_database_key_path):
+    if key_path is None:
+        key = Fernet.generate_key()
+        try:
+            with open("nonebot_plugin_valorant/resources/cache/conf.yaml", "w") as f:
+                f.write(f'key: "{key.decode()}"')
+        except FileNotFoundError:
+            logger.warning("密钥生成失败")
+        else:
+            logger.info("数据库密钥获取成功")
+    else:
+        try:
+            with open(key_path, "r") as f:
+                key = f.read()
+        except FileNotFoundError:
+            logger.warning("密钥获取失败")
+        else:
+            logger.info("数据库密钥获取成功")
 
-    logger.info("数据库密钥生成成功")
 
 
 async def on_startup():
