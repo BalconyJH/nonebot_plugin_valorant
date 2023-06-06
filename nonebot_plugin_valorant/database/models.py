@@ -31,18 +31,25 @@ class BaseModel(Base):
         return False
 
     @classmethod
-    def update(cls, session, q, **kwargs):
+    def update(cls, session, q):
         query = cls.get(session, **q)
         if query.count():
-            query.update(kwargs)
+            query.update(q)
             session.commit()
             return True
         return False
 
     @classmethod
-    def matches_data(cls, data: Dict):
-        # 比较逻辑，根据 UUID 进行比较
-        return data.get("uuid") == str(cls.uuid)
+    def matches_data(cls, data: Dict) -> bool:
+        """
+        检查数据UUID是否与模型匹配。
+        :param
+        - data:["uuid"]
+        :return:
+        - bool: 数据UUID与模型匹配返回True，否则返回False。
+        """
+        # return data.get("uuid") == str(cls.uuid)
+        # TODO: 检查数据是否匹配, 添加读取数据库uuid比对
 
     @classmethod
     def merge(cls, session, **kwargs):
