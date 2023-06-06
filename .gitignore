@@ -116,6 +116,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+/.pdm-python
+/.env.dev
+/.env.prod
+/.env
 
 # Spyder project settings
 .spyderproject
@@ -145,3 +149,4 @@ dmypy.json
 *.db
 .pdm.toml
 /nonebot_plugin_valorant/resources/cache/conf.yaml
+
