@@ -1,6 +1,6 @@
 from typing import Dict
 
-from sqlalchemy import String, Column, func, DateTime, JSON, Text
+from sqlalchemy import JSON, Column, DateTime, String, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column
 

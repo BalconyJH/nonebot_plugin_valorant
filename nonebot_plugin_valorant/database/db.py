@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 from cryptography.fernet import Fernet
 from nonebot import get_driver
@@ -7,16 +7,11 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.query import Query
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy_utils import create_database, database_exists
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.database.models import (
-    BaseModel,
-    User,
-    WeaponSkin,
-    Tier,
-    Version,
-)
+from nonebot_plugin_valorant.database.models import (BaseModel, Tier, User,
+                                                     Version, WeaponSkin)
 
 engine = create_engine(plugin_config.valorant_database)
 Session = sessionmaker(bind=engine)
