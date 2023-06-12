@@ -2,14 +2,14 @@ from contextlib import suppress
 
 from nonebot import require
 
+from nonebot_plugin_apscheduler import scheduler
+
 from nonebot_plugin_valorant.database import DB
 from nonebot_plugin_valorant.utils import cache_store
 from nonebot_plugin_valorant.utils.errors import ResponseError
-from nonebot_plugin_valorant.utils.reqlib.client import get_manifest_id, get_version
+from nonebot_plugin_valorant.utils.reqlib.client import get_manifest_id
 
 require("nonebot_plugin_apscheduler")
-
-from nonebot_plugin_apscheduler import scheduler
 
 
 @scheduler.scheduled_job("cron", hour="*/1", id="refresh_store")

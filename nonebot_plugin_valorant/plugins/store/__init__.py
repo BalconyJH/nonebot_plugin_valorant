@@ -20,17 +20,17 @@ store.__doc__ = """商店"""
 
 @store.handle()
 async def _(
-        event: PrivateMessageEvent,
-        state: T_State,
-        confirm: str = ArgPlainText("confirm"),
-):
+    event: PrivateMessageEvent,
+    state: T_State,
+    confirm: str = ArgPlainText("confirm"),
+) -> str:
     endpoint = "test"
 
 
 @force_refresh.handle()
 async def _force_refresh(
-        event: PrivateMessageEvent,
-        state: T_State,
+    event: PrivateMessageEvent,
+    state: T_State,
 ):
     try:
         await cache_store()

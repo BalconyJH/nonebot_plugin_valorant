@@ -66,6 +66,14 @@ class ValorantBotError(TranslatableError):
     pass
 
 
+class DataParseError(TranslatableError):
+    """
+    当无法解析数据时引发的异常。
+    """
+
+    pass
+
+
 class ResponseError(TranslatableError):
     """
     当 Riot 服务器返回空响应时引发的异常。
@@ -98,5 +106,5 @@ class DatabaseError(TranslatableError):
     pass
 
 
-class FileExistError(TranslatableError):
+class FileNotFoundError(TranslatableError):
     pass

@@ -1,8 +1,7 @@
-from typing import Dict
-
 from sqlalchemy import JSON, Column, DateTime, String, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column
+
 
 Base = declarative_base()
 
@@ -11,19 +10,18 @@ class BaseModel(Base):
     __abstract__ = True
 
     @classmethod
-    def get(cls, session, **kwargs):
-        query = session.query(cls).filter_by(**kwargs)
-        return query.first()
+    async def get(cls, session, *args, **kwargs):
+        return session.query(cls).filter_by(**kwargs)
 
     @classmethod
-    def add(cls, session, **kwargs):
+    async def add(cls, session, **kwargs):
         instance = cls(**kwargs)
         session.add(instance)
         session.commit()
 
     @classmethod
-    def delete(cls, session, **kwargs):
-        query = cls.get(session, **kwargs)
+    async def delete(cls, session, **kwargs):
+        query = await cls.get(**kwargs)
         if query.count():
             query.delete()
             session.commit()
@@ -31,34 +29,34 @@ class BaseModel(Base):
         return False
 
     @classmethod
-    def update(cls, session, q):
-        query = cls.get(session, **q)
-        if query.count():
-            query.update(q)
-            session.commit()
+    async def update(cls, q, **kwargs):
+        query = await cls.get(**q)
+        if await query.exists():
+            await query.update(**kwargs)
             return True
         return False
 
-    @classmethod
-    def matches_data(cls, data: Dict) -> bool:
-        """
-        检查数据UUID是否与模型匹配。
-        :param
-        - data:["uuid"]
-        :return:
-        - bool: 数据UUID与模型匹配返回True，否则返回False。
-        """
-        # return data.get("uuid") == str(cls.uuid)
-        # TODO: 检查数据是否匹配, 添加读取数据库uuid比对
 
-    @classmethod
-    def merge(cls, session, **kwargs):
-        query = cls.get(session, uuid=kwargs["uuid"])
-        if query.count():
-            query.update(kwargs)
-            session.commit()
-        else:
-            cls.add(session, **kwargs)
+    # @classmethod
+    # def matches_data(cls, data: Dict) -> bool:
+    #     """
+    #     检查数据UUID是否与模型匹配。
+    #     :param
+    #     - data:["uuid"]
+    #     :return:
+    #     - bool: 数据UUID与模型匹配返回True，否则返回False。
+    #     """
+    #     # return data.get("uuid") == str(cls.uuid)
+    #     # TODO: 检查数据是否匹配, 添加读取数据库uuid比对
+
+    # @classmethod
+    # def merge(cls, session, **kwargs):
+    #     query = cls.get(session, uuid=kwargs["uuid"])
+    #     if query.count():
+    #         query.update(kwargs)
+    #         session.commit()
+    #     else:
+    #         cls.add(session, **kwargs)
 
 
 class User(BaseModel):
@@ -101,12 +99,11 @@ class User(BaseModel):
     def __repr__(self):
         return f"<User(puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', emt='{self.emt}', username='{self.username}', region='{self.region}', expiry_token='{self.expiry_token}', qq_uid='{self.qq_uid}', timestamp='{self.timestamp}')>"
 
+class UserShop(BaseModel):
+    ...
 
 class WeaponSkin(BaseModel):
-    """武器皮肤模型类
-
-    该模型表示一种武器皮肤，包含唯一标识符、名称、图标和级别四个属性。
-    """
+    """武器皮肤模型类"""
 
     __tablename__ = "weapon_skins"
 
@@ -122,8 +119,10 @@ class WeaponSkin(BaseModel):
     tier: Mapped[str] = mapped_column(String(255))
     """str: 武器皮肤的级别。"""
 
+    hash: Mapped[str] = mapped_column(String(255))
+
     def __repr__(self):
-        return f"<WeaponSkin(uuid='{self.uuid}', names='{self.names}', icon='{self.icon}', tier='{self.tier}')>"
+        return f"<WeaponSkin(uuid='{self.uuid}', names='{self.names}', icon='{self.icon}', tier='{self.tier}', hash='{self.hash}')>"
 
 
 class Version(BaseModel):
@@ -207,9 +206,7 @@ class Playercard(BaseModel):
     icon: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
-        return (
-            f"<Playercard(uuid='{self.uuid}', name='{self.name}', icon='{self.icon}')>"
-        )
+        return f"<Playercard(uuid='{self.uuid}', name='{self.name}', icon='{self.icon}')>"
 
 
 class Title(BaseModel):

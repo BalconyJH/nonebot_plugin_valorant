@@ -100,12 +100,12 @@ class Auth:
     )
 
     def __init__(self) -> None:
-        self._headers: Dict = {
+        self._headers: Dict[str, str] = {
             "Content-Type": "application/json",
             "User-Agent": Auth.RIOT_CLIENT_USER_AGENT,
             "Accept": "application/json, text/plain, */*",
         }
-        self.user_agent = Auth.RIOT_CLIENT_USER_AGENT
+        self.user_agent: str = Auth.RIOT_CLIENT_USER_AGENT
 
     @staticmethod
     def _extract_tokens(data: Dict[str, Any]) -> Dict[str, str]:
@@ -149,8 +149,8 @@ class Auth:
             token_id = url.split("id_token=")[1].split("&")[0]
 
             return access_token, token_id
-        except IndexError as e:
-            raise IndexError("Invalid cookies") from e
+        except IndexError as error:
+            raise IndexError("Invalid cookies") from error
 
     async def authenticate(
         self, username: str, password: str

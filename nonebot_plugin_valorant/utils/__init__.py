@@ -28,8 +28,7 @@ async def check_proxy():
                 ):
                     pass
             except Exception as e:
-                pass
-                # raise RuntimeError("代理无效，请检查代理") from e
+                raise RuntimeError("代理无效，请检查代理") from e
     logger.info("代理连接成功")
 
 
@@ -40,6 +39,7 @@ async def check_db():
         engine.connect()
     except Exception as e:
         raise DatabaseError(f"数据库无效，请检查数据库{e}") from e
+    engine.dispose()  # 关闭数据库连接
     logger.info("数据库连接成功")
 
 
@@ -47,7 +47,7 @@ async def generate_database_key(key_path: str=plugin_config.valorant_database_ke
     if key_path is None:
         key = Fernet.generate_key()
         try:
-            with open("nonebot_plugin_valorant/resources/cache/conf.yaml", "w") as f:
+            with open("nonebot_plugin_valorant/resources/cache/key.json", "w") as f:
                 f.write(f'key: "{key.decode()}"')
         except FileNotFoundError:
             logger.warning("密钥生成失败")

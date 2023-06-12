@@ -3,7 +3,7 @@ from nonebot import logger
 from nonebot_plugin_valorant.database import DB
 from nonebot_plugin_valorant.utils.reqlib.client import (
     get_manifest_id,
-    get_version_data,
+    get_version_data, get_version,
 )
 from nonebot_plugin_valorant.utils.reqlib.request_res import get_skin, get_tier
 
@@ -17,7 +17,6 @@ async def cache_store():
     """
     await DB.cache_skin(await get_skin())
     await DB.cache_tier(await get_tier())
-    logger.info("皮肤缓存完成")
 
 
 async def cache_version():
@@ -27,7 +26,8 @@ async def cache_version():
         None
 
     """
-    data = await get_version_data()
+    data = await get_version()
+    print(data)
     await DB.update_version(**data)
     logger.info("版本信息缓存完成")
 

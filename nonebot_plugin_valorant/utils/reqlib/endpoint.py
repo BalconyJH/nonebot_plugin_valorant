@@ -1,20 +1,16 @@
-# inspired by https://github.com/colinhartigan/
-
-
-# Standard
 from typing import Any, Dict, Mapping, Optional
 
 import urllib3
 
 from nonebot_plugin_valorant.utils.errors import HandshakeError
 from nonebot_plugin_valorant.utils.reqlib.client import get_client_version
-# Local
+
 from nonebot_plugin_valorant.utils.reqlib.request_res import (
     base_endpoint,
     base_endpoint_glz,
     base_endpoint_shared,
-    get_request_json_data,
-    put_request_json_data,
+    get_request_json,
+    put_request_json,
 )
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -53,15 +49,16 @@ class EndpointAPI:
 
         Returns:
             返回获取到的数据。
+
+        Raises:
+            ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
         """
         endpoint_url = getattr(self, url)
 
-        return await get_request_json_data(
-            f"{endpoint_url}{endpoint}", headers=self.headers
-        )
+        return await get_request_json(f"{endpoint_url}{endpoint}", headers=self.headers)
 
     async def put(
-            self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None
+        self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None
     ) -> dict:
         """
         异步发送 PUT 请求到 API。
@@ -78,41 +75,45 @@ class EndpointAPI:
             ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
         """
         endpoint_url = getattr(self, url)
-        data = await put_request_json_data(
+        data = await put_request_json(
             url=f"{endpoint_url}{endpoint}", data=data, headers=self.headers
         )
         return data
 
     # contracts endpoints
 
-    def fetch_contracts(self) -> Mapping[str, Any]:
+    async def fetch_contracts(self) -> Mapping[str, Any]:
         """
         Contracts_Fetch
         Get a list of contracts and completion status including match history
         """
-        return self.fetch(endpoint=f"/contracts/v1/contracts/{self.puuid}", url="pd")
+        return await self.fetch(
+            endpoint=f"/contracts/v1/contracts/{self.puuid}", url="pd"
+        )
 
     # PVP endpoints
 
-    def fetch_content(self) -> Mapping[str, Any]:
+    async def fetch_content(self) -> Mapping[str, Any]:
         """
         Content_FetchContent
         Get names and ids for game content such as agents, maps, guns, etc.
         """
-        return self.fetch(endpoint="/content-service/v3/content", url="shared")
+        return await self.fetch(endpoint="/content-service/v3/content", url="shared")
 
-    def fetch_account_xp(self) -> Mapping[str, Any]:
+    async def fetch_account_xp(self) -> Mapping[str, Any]:
         """
         AccountXP_GetPlayer
         Get the account level, XP, and XP history for the active player
         """
-        return self.fetch(endpoint=f"/account-xp/v1/players/{self.puuid}", url="pd")
+        return await self.fetch(
+            endpoint=f"/account-xp/v1/players/{self.puuid}", url="pd"
+        )
 
-    def fetch_player_mmr(self, puuid: str = None) -> Mapping[str, Any]:
+    async def fetch_player_mmr(self, puuid: str = None) -> Mapping[str, Any]:
         puuid = self.__check_puuid(puuid)
-        return self.fetch(endpoint=f"/mmr/v1/players/{puuid}", url="pd")
+        return await self.fetch(endpoint=f"/mmr/v1/players/{puuid}", url="pd")
 
-    def fetch_name_by_puuid(self, puuid: str = None) -> dict:
+    async def fetch_name_by_puuid(self, puuid: str = None) -> dict:
         """
         Name_service
         根据 PUUID 获取玩家的名字标签。
@@ -130,18 +131,18 @@ class EndpointAPI:
             puuid = [self.__check_puuid()]
         elif isinstance(puuid, str):
             puuid = [puuid]
-        return self.put(endpoint="/name-service/v2/players", url="pd", data=puuid)
+        return await self.put(endpoint="/name-service/v2/players", url="pd", data=puuid)
 
-    def fetch_player_loadout(self) -> dict:
+    async def fetch_player_loadout(self) -> dict:
         # noinspection SpellCheckingInspection
         """
-                playerLoadoutUpdate
-                获取玩家当前的装备设置。
+        playerLoadoutUpdate
+        获取玩家当前的装备设置。
 
-                Returns:
-                    dict: 包含玩家当前装备设置的响应结果。
-                """
-        return self.put(
+        Returns:
+            dict: 包含玩家当前装备设置的响应结果。
+        """
+        return await self.put(
             endpoint=f"/personalization/v2/players/{self.puuid}/playerloadout",
             url="pd",
         )
@@ -158,7 +159,7 @@ class EndpointAPI:
         Returns:
             dict: 包含更新后装备设置的响应结果。
         """
-        return self.put(
+        return await self.put(
             endpoint=f"/personalization/v2/players/{self.puuid}/playerloadout",
             url="pd",
             data=loadout,
@@ -166,19 +167,19 @@ class EndpointAPI:
 
     # store endpoints
 
-    def get_offers(self) -> Mapping[str, Any]:
+    async def get_offers(self) -> Mapping[str, Any]:
         """
         获取商店中所有商品的价格信息。
         """
-        return self.fetch("/store/v1/offers/", url="pd")
+        return await self.fetch("/store/v1/offers/", url="pd")
 
-    def get_storefront(self) -> Mapping[str, Any]:
+    async def get_storefront(self) -> Mapping[str, Any]:
         """
         获取商店中当前可用的商品。
         """
-        return self.fetch(f"/store/v2/storefront/{self.puuid}", url="pd")
+        return await self.fetch(f"/store/v2/storefront/{self.puuid}", url="pd")
 
-    def get_player_wallet_balance(self) -> Mapping[str, Any]:
+    async def get_player_wallet_balance(self) -> Mapping[str, Any]:
         """
         获取玩家钱包中的 Valorant 点数和 Radiant 点数余额。
         Valorant 点数的 ID 为 85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741。
@@ -187,16 +188,16 @@ class EndpointAPI:
         Returns:
             包含玩家钱包中 Valorant 点数和 Radiant 点数余额的字典。
         """
-        return self.fetch(f"/store/v1/wallet/{self.puuid}", url="pd")
+        return await self.fetch(f"/store/v1/wallet/{self.puuid}", url="pd")
 
-    def store_fetch_order(self, order_id: str) -> Mapping[str, Any]:
+    async def store_fetch_order(self, order_id: str) -> Mapping[str, Any]:
         """
         Store_GetOrder
         {order id}: The ID of the order. Can be obtained when creating an order.
         """
-        return self.fetch(f"/store/v1/order/{order_id}", url="pd")
+        return await self.fetch(f"/store/v1/order/{order_id}", url="pd")
 
-    def store_fetch_entitlements(self, item_type: Mapping) -> Mapping[str, Any]:
+    async def store_fetch_entitlements(self, item_type: Mapping) -> Mapping[str, Any]:
         # noinspection SpellCheckingInspection
         """Store_GetEntitlements
         获取玩家拥有的物品列表（特务、皮肤、挂饰）。
@@ -213,30 +214,29 @@ class EndpointAPI:
         '3ad1b2b2-acdb-4524-852f-954a76ddae0a': '皮肤染色',\n
         'de7caa6b-adf7-4588-bbd1-143831e786c6': '玩家称号',\n
         """
-        return self.fetch(
+        return await self.fetch(
             endpoint=f"/store/v1/entitlements/{self.puuid}/{item_type}", url="pd"
         )
 
-    # useful endpoints
-
-    def fetch_mission(self) -> Mapping[str, Any]:
+    async def fetch_mission(self) -> Mapping[str, Any]:
         """
         Get player daily/weekly missions
         """
-        data = self.fetch_contracts()
+        data = await self.fetch_contracts()
         return data["Missions"]
 
-    def get_player_level(self) -> Mapping[str, Any]:
+    async def get_player_level(self) -> Mapping[str, Any]:
         """
         Aliases `fetch_account_xp` but received a level
         """
-        return self.fetch_account_xp()["Progress"]["Level"]
+        data = await self.fetch_account_xp()
+        return data["Progress"]["Level"]
 
-    def get_player_tier_rank(self, puuid: str = None) -> str:
+    async def get_player_tier_rank(self, puuid: str = None) -> str:
         """
         get player current tier rank
         """
-        data = self.fetch_player_mmr(puuid)
+        data = await self.fetch_player_mmr(puuid)
         season_id = data["LatestCompetitiveUpdate"]["SeasonID"]
         if len(season_id) == 0:
             season_id = self.__get_live_season()
@@ -247,7 +247,7 @@ class EndpointAPI:
 
     def __get_live_season(self) -> str:
         """Get the UUID of the live competitive season"""
-        content = self.fetch_content()
+        content = await self.fetch_content()
         season_id = [
             season["ID"]
             for season in content["Seasons"]
@@ -256,7 +256,7 @@ class EndpointAPI:
         return (
             season_id[0]
             if season_id
-            else self.fetch_player_mmr()["LatestCompetitiveUpdate"]["SeasonID"]
+            else (await self.fetch_player_mmr())["LatestCompetitiveUpdate"]["SeasonID"]
         )
 
     def __check_puuid(self, puuid: Optional[str] = None) -> str:

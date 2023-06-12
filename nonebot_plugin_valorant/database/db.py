@@ -3,15 +3,20 @@ from typing import Any, Dict
 from cryptography.fernet import Fernet
 from nonebot import get_driver
 from nonebot.log import logger
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.query import Query
-from sqlalchemy_utils import create_database, database_exists
+from sqlalchemy_utils import database_exists, create_database
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.database.models import (BaseModel, Tier, User,
-                                                     Version, WeaponSkin)
+from nonebot_plugin_valorant.database.models import (
+    BaseModel,
+    Tier,
+    User,
+    Version,
+    WeaponSkin,
+)
 
 engine = create_engine(plugin_config.valorant_database)
 Session = sessionmaker(bind=engine)
@@ -23,14 +28,16 @@ database_key = Fernet.generate_key()
 cipher_suite = Fernet(database_key)
 
 
-# 加密数据
-def encrypt_data(data):
+def encrypt_data(data: str) -> bytes:
     return cipher_suite.encrypt(data.encode())
 
 
-# 解密数据
-def decrypt_data(encrypted_data):
+def decrypt_data(encrypted_data: bytes) -> str:
     return cipher_suite.decrypt(encrypted_data).decode()
+
+
+def calculate_hash(data: str) -> int:
+    return hash(data)
 
 
 class DB:
@@ -79,7 +86,7 @@ class DB:
         参数:
         - kwargs: 包含用户信息的关键字参数。
         """
-        User.add(session, **kwargs)
+        await User.add(session, **kwargs)
 
     @classmethod
     async def logout(cls, qq_uid: str):
@@ -89,7 +96,7 @@ class DB:
         参数:
         - qq_uid: 用户的 QQ UID。
         """
-        User.delete(session, qq_uid=qq_uid)
+        await User.delete(session, qq_uid=qq_uid)
         # todo 级联删除用户的所有数据(shop, user, misson, etc.)
 
     @classmethod
@@ -103,7 +110,7 @@ class DB:
         返回值:
         - user: 用户信息(Dict)。
         """
-        return User.get(session, qq_uid=qq_uid)
+        return await User.get(session, qq_uid=qq_uid)
 
     @classmethod
     async def cache_skin(cls, data: Dict):
@@ -113,10 +120,11 @@ class DB:
         参数:
         """
         for uuid, skin_data in data.items():
-            existing_skin = WeaponSkin.get(session, uuid=uuid)  # 查询现有数据
-            if existing_skin and existing_skin.matches_data(skin_data):  # 检查数据是否相同
-                continue  # 数据已存在且相同，跳过添加逻辑
-            WeaponSkin.add(session, **skin_data)
+            existing_skin = await WeaponSkin.get(session, uuid=uuid)
+            if existing_skin.first() is not None:
+                continue
+            await WeaponSkin.add(session, **skin_data)
+        logger.info("skin缓存完成")
 
     @classmethod
     async def cache_tier(cls, data: Dict):
@@ -126,10 +134,11 @@ class DB:
         参数:
         """
         for uuid, tier_data in data.items():
-            existing_tier = Tier.get(session, uuid=uuid)  # 查询现有数据
-            if existing_tier and existing_tier.matches_data(tier_data):  # 检查数据是否相同
-                continue  # 数据已存在且相同，跳过添加逻辑
-            Tier.add(session, **tier_data)
+            existing_tier = await Tier.get(session, uuid=uuid)
+            if existing_tier.first() is not None:
+                continue
+            await Tier.add(session, **tier_data)
+        logger.info("tier缓存完成")
 
     # @classmethod
     # async def cache_version(cls, data: Dict):
@@ -140,7 +149,6 @@ class DB:
     #     - data: 版本数据字典，包含多个版本的信息
     #     """
     #     for version_data in data:
-
 
     @classmethod
     async def get_version(cls, version_fields) -> dict[Any, Any]:
@@ -154,7 +162,7 @@ class DB:
         返回:
         - 查询结果的字典，键为版本字段名，值为对应的内容
         """
-        return Version.get(session, **version_fields)
+        return await Version.get(session, **version_fields)
 
     @classmethod
     async def update_version(cls, **kwargs):
@@ -164,11 +172,13 @@ class DB:
         参数:
         - kwargs: 包含版本信息的关键字参数。
         """
-        Version.update(session, **kwargs)
+        version_cache = await Version.get(session, manifestId=kwargs["manifestId"])
+        if version_cache.first() is None:
+            await Version.add(session, **kwargs)
 
     @classmethod
     async def init_version(cls, **kwargs):
-        Version.add(session, **kwargs)
+        await Version.add(session, **kwargs)
 
 
 # nonebot启动时初始化/关闭数据库

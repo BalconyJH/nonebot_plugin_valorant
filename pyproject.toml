@@ -1,29 +1,24 @@
-[tool.pdm]
-
 [project]
-name = "nonebot_plugin_valorant"
-version = "0.1.0"
-description = "Valorant bot for qq plaform power by NoneBot2"
+name = ""
+version = ""
+description = ""
 authors = [
     {name = "BalconyJH", email = "balconyjh@gmail.com"},
 ]
 dependencies = [
+    "setuptools>=67.8.0",
+    "nonebot2[fastapi]>=2.0.0",
+    "nonebot-plugin-apscheduler>=0.3.0",
     "nb-cli>=1.1.2",
-    "aiohttp>=3.8.4",
-    "tortoise-orm>=0.19.3",
-    "nonebot2[fastapi]>=2.0.0rc4",
-    "nonebot-adapter-onebot>=2.2.2",
-    "aiomysql>=0.1.1",
-    "nonebot-plugin-datastore>=0.6.2",
-    "nonebot-plugin-apscheduler>=0.2.0",
-    "cryptography>=40.0.2",
+    "nonebot-adapter-onebot>=2.2.3",
+    "nonebot-adapter-kaiheila>=0.2.6",
+    "cryptography>=41.0.1",
+    "SQLAlchemy>=2.0.16",
     "sqlalchemy-utils>=0.41.1",
-    "nonebot-plugin-send-anything-anywhere>=0.2.4",
-    "deptry>=0.11.0",
+    "pymysql>=1.0.3",
 ]
-requires-python = ">=3.8"
-readme = "README.md"
-license = {text = "GNUv3"}
+requires-python = ">=3.11"
+license = {text = "MIT"}
 
 [build-system]
 requires = ["pdm-pep517>=1.0"]
@@ -34,10 +29,5 @@ adapters = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" },
 ]
 plugins = []
-plugin_dirs = ["nonebot_plugin_valorant/plugins"]
+plugin_dirs = ["nonebot_plugin_valorant"]
 builtin_plugins = ["echo"]
-
-[[tool.pdm.source]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-verify_ssl = false
-name = "pypi"
