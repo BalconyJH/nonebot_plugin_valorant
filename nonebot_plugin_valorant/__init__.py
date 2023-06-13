@@ -2,12 +2,22 @@ import asyncio
 
 from nonebot import get_driver
 from nonebot.log import logger
-from nonebot.plugin.manager import PluginLoader
+from nonebot.plugin import PluginMetadata
+from .config import plugin_config
 
 from nonebot_plugin_valorant.config import Config
 from nonebot_plugin_valorant.utils import on_startup
 
 driver = get_driver()
+
+__plugin_name_meta__ = PluginMetadata(
+    name="nonebot_plugin_valorant",
+    description="Valorant查询插件",
+    usage="",
+    type="application",
+    homepage="https://github.com/BalconyJH/nonebot_plugin_valorant",
+    config=plugin_config,
+)
 
 
 @driver.on_startup
