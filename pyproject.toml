@@ -16,6 +16,8 @@ dependencies = [
     "SQLAlchemy>=2.0.16",
     "sqlalchemy-utils>=0.41.1",
     "pymysql>=1.0.3",
+    "nonebot-plugin-send-anything-anywhere>=0.2.7",
+    "sentry-sdk>=1.26.0",
 ]
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -27,7 +29,9 @@ build-backend = "pdm.pep517.api"
 [tool.nonebot]
 adapters = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" },
+    { name = "OneBot V12", module_name = "nonebot.adapters.onebot.v12" },
+    { name = "Kaiheila", module_name = "nonebot.adapters.kaiheila" }
 ]
 plugins = []
-plugin_dirs = ["nonebot_plugin_valorant"]
+plugin_dirs = ["nonebot_plugin_valorant/plugins"]
 builtin_plugins = ["echo"]
