@@ -17,6 +17,65 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class EndpointAPI:
+    def __build_headers(self, headers) -> Dict[str, Any]:
+        """build headers"""
+
+        headers["X-Riot-ClientPlatform"] = self.client_platform
+        headers["X-Riot-ClientVersion"] = get_client_version()
+        return headers
+
+    def __build_urls(self):
+        """
+        根据地区/分区生成URL
+
+        根据地区和分区生成相应的URL
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        # 基于分区构建URL
+        self.pd = base_endpoint.format(shard=self.shard)
+        self.shared = base_endpoint_shared.format(shard=self.shard)
+
+        # 基于地区和分区构建URL
+        self.glz = base_endpoint_glz.format(region=self.region, shard=self.shard)
+
+    def __format_region(self):
+        """
+        将地区格式化为符合要求的格式
+
+        Returns:
+            None
+        """
+
+        # 地区到分区的映射关系
+        region_shard_override = {
+            "latam": "na",
+            "br": "na",
+        }
+
+        # 分区到地区的映射关系
+        shard_region_override = {"pbe": "na"}
+
+        # 将 self.shard 设置为 self.region 的初始值
+        self.shard = self.region
+
+        # 如果 self.region 在 region_shard_override 的键中
+        if self.region in region_shard_override:
+            # 将 self.shard 设置为对应的分区
+            self.shard = region_shard_override[self.region]
+
+        # 如果 self.shard 在 shard_region_override 的键中
+        if self.shard in shard_region_override:
+            # 将 self.region 设置为对应的地区
+            self.region = shard_region_override[self.shard]
+
+    # contracts endpoints
+
     def __init__(self, auth: Mapping[str, Any]) -> None:
         from .auth import Auth
 
@@ -80,8 +139,6 @@ class EndpointAPI:
         )
         return data
 
-    # contracts endpoints
-
     async def fetch_contracts(self) -> Mapping[str, Any]:
         """
         Contracts_Fetch
@@ -90,8 +147,6 @@ class EndpointAPI:
         return await self.fetch(
             endpoint=f"/contracts/v1/contracts/{self.puuid}", url="pd"
         )
-
-    # PVP endpoints
 
     async def fetch_content(self) -> Mapping[str, Any]:
         """
@@ -112,6 +167,8 @@ class EndpointAPI:
     async def fetch_player_mmr(self, puuid: str = None) -> Mapping[str, Any]:
         puuid = self.__check_puuid(puuid)
         return await self.fetch(endpoint=f"/mmr/v1/players/{puuid}", url="pd")
+
+    # store endpoints
 
     async def fetch_name_by_puuid(self, puuid: str = None) -> dict:
         """
@@ -147,7 +204,7 @@ class EndpointAPI:
             url="pd",
         )
 
-    def put_player_loadout(self, loadout: dict) -> dict:
+    async def put_player_loadout(self, loadout: dict) -> dict:
         """
         playerLoadoutUpdate
         使用从 `fetch_player_loadout` 获取的值（不包括 `subject` 和 `version` 等属性）来更新装备设置。
@@ -165,25 +222,35 @@ class EndpointAPI:
             data=loadout,
         )
 
-    # store endpoints
-
     async def get_offers(self) -> Mapping[str, Any]:
         """
         获取商店中所有商品的价格信息。
         """
         return await self.fetch("/store/v1/offers/", url="pd")
 
-    async def get_storefront(self) -> Mapping[str, Any]:
+    async def get_player_storefront(self) -> Mapping[str, Any]:
         """
-        获取商店中当前可用的商品。
+        获取玩家商店中当前可用的商品。
+
+        Returns:
+            FeaturedBundle: 特色捆绑包
+            SkinsPanelLayout： 武器皮肤
+            UpgradeCurrencyStore: 升级货币商店
+            BonusStore: 夜市
+            AccessoryStore: 附件商店
+
+            "httpStatus": 400 验证/解码 RSO 访问令牌失败
+
         """
         return await self.fetch(f"/store/v2/storefront/{self.puuid}", url="pd")
 
     async def get_player_wallet_balance(self) -> Mapping[str, Any]:
         """
         获取玩家钱包中的 Valorant 点数和 Radiant 点数余额。
+
         Valorant 点数的 ID 为 85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741。
         Radiant 点数的 ID 为 e59aa87c-4cbf-517a-5983-6e81511be9b7。
+        未知货币的 ID 为 f08d4ae3-939c-4576-ab26-09ce1f23bb37。
 
         Returns:
             包含玩家钱包中 Valorant 点数和 Radiant 点数余额的字典。
@@ -218,6 +285,8 @@ class EndpointAPI:
             endpoint=f"/store/v1/entitlements/{self.puuid}/{item_type}", url="pd"
         )
 
+    # local utility functions
+
     async def fetch_mission(self) -> Mapping[str, Any]:
         """
         Get player daily/weekly missions
@@ -243,9 +312,7 @@ class EndpointAPI:
         current_season = data["QueueSkills"]["competitive"]["SeasonalInfoBySeasonID"]
         return current_season[season_id]["CompetitiveTier"]
 
-    # local utility functions
-
-    def __get_live_season(self) -> str:
+    async def __get_live_season(self) -> str:
         """Get the UUID of the live competitive season"""
         content = await self.fetch_content()
         season_id = [
@@ -259,63 +326,6 @@ class EndpointAPI:
             else (await self.fetch_player_mmr())["LatestCompetitiveUpdate"]["SeasonID"]
         )
 
-    def __check_puuid(self, puuid: Optional[str] = None) -> str:
+    async def __check_puuid(self, puuid: Optional[str] = None) -> str:
         """If puuid passed into method is None make it current user's puuid"""
         return self.puuid if puuid is None else puuid
-
-    def __format_region(self):
-        """
-        将地区格式化为符合要求的格式
-
-        Returns:
-            None
-        """
-
-        # 地区到分区的映射关系
-        region_shard_override = {
-            "latam": "na",
-            "br": "na",
-        }
-
-        # 分区到地区的映射关系
-        shard_region_override = {"pbe": "na"}
-
-        # 将 self.shard 设置为 self.region 的初始值
-        self.shard = self.region
-
-        # 如果 self.region 在 region_shard_override 的键中
-        if self.region in region_shard_override:
-            # 将 self.shard 设置为对应的分区
-            self.shard = region_shard_override[self.region]
-
-        # 如果 self.shard 在 shard_region_override 的键中
-        if self.shard in shard_region_override:
-            # 将 self.region 设置为对应的地区
-            self.region = shard_region_override[self.shard]
-
-    def __build_urls(self):
-        """
-        根据地区/分区生成URL
-
-        根据地区和分区生成相应的URL
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-
-        # 基于分区构建URL
-        self.pd = base_endpoint.format(shard=self.shard)
-        self.shared = base_endpoint_shared.format(shard=self.shard)
-
-        # 基于地区和分区构建URL
-        self.glz = base_endpoint_glz.format(region=self.region, shard=self.shard)
-
-    def __build_headers(self, headers) -> Dict[str, Any]:
-        """build headers"""
-
-        headers["X-Riot-ClientPlatform"] = self.client_platform
-        headers["X-Riot-ClientVersion"] = get_client_version()
-        return headers

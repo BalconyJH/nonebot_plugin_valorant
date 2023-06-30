@@ -27,7 +27,6 @@ async def cache_version():
 
     """
     data = await get_version()
-    print(data)
     await DB.update_version(**data)
     logger.info("版本信息缓存完成")
 

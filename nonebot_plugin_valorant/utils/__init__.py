@@ -47,8 +47,8 @@ async def generate_database_key(key_path: str=plugin_config.valorant_database_ke
     if key_path is None:
         key = Fernet.generate_key()
         try:
-            with open("nonebot_plugin_valorant/resources/cache/key.json", "w") as f:
-                f.write(f'key: "{key.decode()}"')
+            with open("nonebot_plugin_valorant/data/key.json", "w") as f:
+                f.write(key.decode())
         except FileNotFoundError:
             logger.warning("密钥生成失败")
         else:
@@ -57,6 +57,7 @@ async def generate_database_key(key_path: str=plugin_config.valorant_database_ke
         try:
             with open(key_path, "r") as f:
                 key = f.read()
+
         except FileNotFoundError:
             logger.warning("密钥获取失败")
         else:

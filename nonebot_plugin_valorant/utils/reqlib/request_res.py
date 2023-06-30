@@ -103,7 +103,7 @@ async def get_request_json(
         proxy: object = plugin_config.valorant_proxies,
         sub_url: Optional[str] = "",
 ) -> Dict:
-    """使用 aiohttp 从指定 URL 获取 JSON 数据。
+    """使用 aiohttp 发送 GET 请求并获取 JSON 数据。
 
     Args:
         sub_url: 要获取数据的 URL。
@@ -179,7 +179,7 @@ def parse_skin(skin: Dict[str, Any]) -> Dict[str, Any]:
         "names": skin_names,
         "icon": skin_icon,
         "tier": skin_tier if skin_tier is not None else "None",
-        "hash": calculate_hash(f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}")
+        "hash": calculate_hash(f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}") # 检查资源完整性
     }
 
 

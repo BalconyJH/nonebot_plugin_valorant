@@ -9,10 +9,8 @@ from nonebot_plugin_saa import Image, Text, MessageFactory
 
 from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.utils.errors import DatabaseError
-from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 
 logout = on_command("logout", aliases={"登出"}, priority=5, block=True)
-auth = Auth()
 
 
 logout.handle()

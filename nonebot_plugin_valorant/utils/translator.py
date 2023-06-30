@@ -5,7 +5,12 @@ from nonebot_plugin_valorant.config import plugin_config
 from nonebot.log import logger
 from nonebot_plugin_valorant.utils.errors import FileNotFoundError
 
-TRANSLATIONS_PATH = Path(__file__).parent.parent / "resources" / "translations" / f"{plugin_config.language_type}.json"
+TRANSLATIONS_PATH = (
+    Path(__file__).parent.parent
+    / "resources"
+    / "translations"
+    / f"{plugin_config.language_type}.json"
+)
 
 
 class Translator:
@@ -35,7 +40,7 @@ class Translator:
                     stack.append(v)
             elif isinstance(item, list):
                 stack.extend(iter(item))
-            elif key in (item, item.split('.')[-1]):
+            elif key in (item, item.split(".")[-1]):
                 return item
         return None
 
@@ -50,6 +55,7 @@ class Translator:
         获取多个消息键的翻译文本。
         """
         return {key: self.gettext(key) for key in message_keys}
+
 
 # def message_translator(message_key: str) -> str:
 #     """

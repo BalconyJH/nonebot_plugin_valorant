@@ -49,6 +49,6 @@ async def get_bot_version() -> str:
 async def get_version() -> dict:
     data = await get_request_json(url=base_url, sub_url="version")
     return {
-        version: method() if callable(method) else method
-        for version, method in data["data"].items()
+        _version: method() if callable(method) else method
+        for _version, method in data["data"].items()
     }
