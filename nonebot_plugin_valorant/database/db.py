@@ -16,6 +16,7 @@ from nonebot_plugin_valorant.database.models import (
     User,
     Version,
     WeaponSkin,
+    UserShop,
 )
 
 engine = create_engine(plugin_config.valorant_database)
@@ -110,7 +111,8 @@ class DB:
         返回值:
         - user: 用户信息(Dict)。
         """
-        return await User.get(session, qq_uid=qq_uid)
+        user = await User.get(session, qq_uid=qq_uid)
+        return user.first()
 
     @classmethod
     async def cache_skin(cls, data: Dict):
@@ -172,14 +174,32 @@ class DB:
         参数:
         - kwargs: 包含版本信息的关键字参数。
         """
-        version_cache = await Version.get(session, manifestId=kwargs["manifestId"])
+        manifest_id = kwargs["manifestId"]
+        version_cache = await Version.get(session, manifestId=manifest_id)
+
         if version_cache.first() is None:
             await Version.add(session, **kwargs)
+        else:
+            existing_version = version_cache.first()
+            if existing_version.manifestId != manifest_id:
+                await Version.update(session, manifestId=manifest_id, **kwargs)
+            logger.info("版本信息已存在")
+
 
     @classmethod
     async def init_version(cls, **kwargs):
         await Version.add(session, **kwargs)
 
+
+    @classmethod
+    async def update_user_store_offer(cls, **kwargs: object):
+        """
+        更新用户商店信息。
+
+        参数:
+        - kwargs: 包含用户商店信息的关键字参数。
+        """
+        await UserShop.update(session, **kwargs)
 
 # nonebot启动时初始化/关闭数据库
 # get_driver().on_startup(DB.init)
