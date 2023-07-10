@@ -1,13 +1,7 @@
 # nonebot_plugin_valorant
 
+
 ## 急速开发中
-
-## How to start
-
-1. generate project using `nb create` .
-2. create your plugin using `nb plugin create` .
-3. writing your plugins under `src/plugins` folder.
-4. run your bot using `nb run --reload` .
 
 # 項目未完成(未經測試),不要嘗試加載
 
@@ -15,9 +9,28 @@
 
 # Project is incomplete (untested), do not try to load
 
-## Documentation
+## ✨️ 特性
 
-還沒寫
+- 查看玩家每日皮肤商店/夜市/配件商店/同捆商店
+- 本地加密的数据库存储
+- 支持多语言环境
+- 支持多平台(kook, qq, discord, villa)
+- 支持完全删除账号相关数据
+
+## 🔧 配置
+
+🗄 [Mysql](https://www.mysql.com/)
+🐍 [Python ](https://www.python.org/)
+🪜 [能够访问外网的环境/外网设备](https://en.m.wikipedia.org/wiki/Virtual_private_network)
+🧠 [带上脑子](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way)
+
+## 🚀 快速上手
+
+等我把流程优化一下先
+
+## 📘 文档
+
+预计会将valreq拆分，开始拆分再写
 
 ## 🧷 备注
 
