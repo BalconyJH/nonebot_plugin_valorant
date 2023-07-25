@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple, Any, Dict
 
 import aiohttp as aiohttp
-import httpx
+# import httpx
 import urllib3.exceptions
 
 from nonebot_plugin_valorant.config import plugin_config
@@ -50,25 +50,25 @@ FORCED_CIPHERS = [
 ]
 
 
-class HttpxClientSession(httpx.Client):
-    def __init__(self, proxy=PROXY, *args, **kwargs):
-        # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
-        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-        ctx.minimum_version = ssl.TLSVersion.TLSv1_3
-
-        # 设置TLS加密算法为FORCED_CIPHERS中的算法
-        ctx.set_ciphers(":".join(FORCED_CIPHERS))
-
-        # 创建代理设置
-        proxies = {"http": proxy, "https": proxy} if proxy else {}
-        # 调用父类的构造函数，传入参数
-        super().__init__(
-            *args,
-            **kwargs,
-            # 传入ssl上下文和代理设置
-            verify=ctx,
-            proxies=proxies,
-        )
+# class HttpxClientSession(httpx.Client):
+#     def __init__(self, proxy=PROXY, *args, **kwargs):
+#         # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
+#         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+#         ctx.minimum_version = ssl.TLSVersion.TLSv1_3
+#
+#         # 设置TLS加密算法为FORCED_CIPHERS中的算法
+#         ctx.set_ciphers(":".join(FORCED_CIPHERS))
+#
+#         # 创建代理设置
+#         proxies = {"http": proxy, "https": proxy} if proxy else {}
+#         # 调用父类的构造函数，传入参数
+#         super().__init__(
+#             *args,
+#             **kwargs,
+#             # 传入ssl上下文和代理设置
+#             verify=ctx,
+#             proxies=proxies,
+#         )
 
 
 class ClientSession(aiohttp.ClientSession):
@@ -312,35 +312,29 @@ class Auth:
 
         session = ClientSession()
 
-        # 准备请求头。
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {access_token}",
         }
 
-        # 发送用户信息请求。
         async with session.post(
             "https://auth.riotgames.com/userinfo", headers=headers, json={}
         ) as r:
             data = await r.json()
 
-        # 关闭会话。
         await session.close()
 
-        # 从响应中提取用户信息。
         try:
             puuid = data["sub"]
             name = data["acct"]["game_name"]
             tag = data["acct"]["tag_line"]
         except KeyError as e:
-            # 如果无法从响应中提取所需的用户信息，请引发 AuthenticationError。
             raise AuthenticationError(
                 message_translator(
                     "无法从响应中提取所需的用户信息",
                 )
             ) from e
         else:
-            # 返回用户信息。
             return puuid, name, tag
 
     @staticmethod
@@ -360,16 +354,13 @@ class Auth:
 
         session = ClientSession()
 
-        # 准备请求头。
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {access_token}",
         }
 
-        # 准备请求体。
         body = {"id_token": token_id}
 
-        # 发送获取区域请求。
         async with session.put(
             "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant",
             headers=headers,
@@ -377,17 +368,13 @@ class Auth:
         ) as r:
             data = await r.json()
 
-        # 关闭会话。
         await session.close()
 
-        # 从响应中提取区域信息。
         try:
             region = data["affinities"]["live"]
         except KeyError as e:
-            # 如果无法从响应中提取所需的区域信息，请引发 AuthenticationError。
             raise AuthenticationError(message_translator("无法从响应中提取所需的区域信息")) from e
         else:
-            # 返回区域字符串。
             return region
 
     async def auth_by_code(self, code: str, cookies: Dict) -> Dict[str, Any]:
@@ -519,7 +506,7 @@ class Auth:
         Returns:
             包含兑换后的 cookies、access token 和 entitlements token 的字典。
         Raises:
-            AuthenticationError: 如果临时登录不支持双因素身份验证，则会引发异常。
+            AuthenticationError:
         """
         authenticate = await self.authenticate(username, password)
         if authenticate["auth"] == "response":
@@ -609,11 +596,23 @@ class Auth:
             "emt": entitlements_token,
         }
 
-    async def refresh_token(self, cookies: Dict) -> tuple[tuple[str, dict], tuple[str, dict], tuple[str, dict]]:
+    async def refresh_token(self, cookies: Dict) -> Tuple[Tuple[str, Dict], Tuple[str, Dict], Tuple[str, Dict]]:
+        """刷新访问令牌、权限令牌和Cookie。
+
+        参数:
+            cookies (Dict): 包含Cookie信息的字典。
+
+        返回:
+            Tuple[Tuple[str, Dict], Tuple[str, Dict], Tuple[str, Dict]]: 包含三个元组的元组。
+                第一个元组包含访问令牌作为第一个元素，字典作为第二个元素。
+                第二个元组包含权限令牌作为第一个元素，字典作为第二个元素。
+                第三个元组包含Cookie作为第一个元素，字典作为第二个元素。
+        """
+
         data = await self.redeem_cookies(cookies)
-        access_token, entitlements_token, cookies = (
-            data["access_token"],
-            data["entitlements_token"],
-            data["cookies"],
-        )
+        access_token = data["access_token"]
+        entitlements_token = data["entitlements_token"]
+        cookies = data["cookies"]
+
         return access_token, entitlements_token, cookies
+
