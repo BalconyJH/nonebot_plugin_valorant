@@ -43,7 +43,9 @@ async def check_db():
     logger.info("数据库连接成功")
 
 
-async def generate_database_key(key_path: str = plugin_config.valorant_database_key_path):
+async def generate_database_key(
+    key_path: str = plugin_config.valorant_database_key_path,
+):
     """
     生成或获取Valorant插件数据库的密钥。
 

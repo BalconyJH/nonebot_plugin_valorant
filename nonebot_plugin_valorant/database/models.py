@@ -15,38 +15,38 @@ Base = declarative_base()
 class BaseModel(Base):
     """
     This class is the base model for all other models in the project. It provides common methods for querying, adding, deleting, and updating data in the database.
-
+    
     Attributes:
         __abstract__ (bool): True if this is an abstract class, False otherwise.
-
+    
     Methods:
         get(cls, session: Session, **kwargs):
             Retrieve a list of instances of the model that match the provided keyword arguments.
-
+    
         add(cls, session: Session, **kwargs):
             Create a new instance of the model with the provided keyword arguments and add it to the session.
-
+    
         delete(cls, session: Session, **kwargs) -> bool:
             Delete the instance(s) of the model that match the provided keyword arguments.
-
+    
         update(cls, q, **kwargs) -> bool:
             Update the instance(s) of the model that match the provided query and keyword arguments.
-
+    
     Note:
         - This class does not have a constructor (__init__) as it is an abstract class.
         - The methods in this class are asynchronous.
-
+    
     Example usage:
-
+    
         # Get instance(s)
         instances = await BaseModel.get(session, name='John')
-
+    
         # Add new instance
         await BaseModel.add(session, name='John', age=30)
-
+    
         # Delete instance(s)
         deleted = await BaseModel.delete(session, age=30)
-
+    
         # Update instance(s)
         updated = await BaseModel.update(session, {'name': 'John'}, age=40)
     """
