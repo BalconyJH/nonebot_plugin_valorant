@@ -185,11 +185,9 @@ class DB:
                 await Version.update(session, manifestId=manifest_id, **kwargs)
             logger.info("版本信息已存在")
 
-
     @classmethod
     async def init_version(cls, **kwargs):
         await Version.add(session, **kwargs)
-
 
     @classmethod
     async def update_user_store_offer(cls, **kwargs: object):
@@ -201,6 +199,5 @@ class DB:
         """
         await UserShop.update(session, **kwargs)
 
-# nonebot启动时初始化/关闭数据库
-# get_driver().on_startup(DB.init)
+
 get_driver().on_shutdown(DB.close)

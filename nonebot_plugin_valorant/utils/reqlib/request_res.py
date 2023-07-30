@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 
 import aiohttp
 from nonebot import logger
+from typing_extensions import LiteralString
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.database.db import calculate_hash
@@ -68,7 +69,8 @@ points = {
 
 error_constructor = Translator()
 
-def get_item_type(uuid: str) -> Optional[str]:
+
+def get_item_type(uuid: LiteralString) -> Optional[str]:
     """Get item type"""
     item_type = {
         "01bb38e1-da47-4e6a-9b3d-945fe4655707": "Agents",
@@ -98,10 +100,10 @@ async def url_to_image(url) -> Optional[bytes]:
 
 
 async def get_request_json(
-        url: str,
-        headers: Dict = None,
-        proxy: object = plugin_config.valorant_proxies,
-        sub_url: Optional[str] = "",
+    url: str,
+    headers: Dict = None,
+    proxy: object = plugin_config.valorant_proxies,
+    sub_url: Optional[str] = "",
 ) -> Dict:
     """使用 aiohttp 发送 GET 请求并获取 JSON 数据。
 
@@ -125,10 +127,10 @@ async def get_request_json(
 
 
 async def put_request_json(
-        url: str,
-        data: [dict, list] = None,
-        headers: Dict = None,
-        proxy: object = plugin_config.valorant_proxies,
+    url: str,
+    data: [dict, list] = None,
+    headers: Dict = None,
+    proxy: object = plugin_config.valorant_proxies,
 ) -> Dict:
     """使用 aiohttp 发送 PUT 请求并获取 JSON 数据。
 
@@ -149,7 +151,7 @@ async def put_request_json(
     try:
         async with aiohttp.ClientSession() as session:
             async with session.put(
-                    url, headers=headers, json=data, proxy=proxy
+                url, headers=headers, json=data, proxy=proxy
             ) as response:
                 response = await response.json()
                 if response is not None:
@@ -179,7 +181,9 @@ def parse_skin(skin: Dict[str, Any]) -> Dict[str, Any]:
         "names": skin_names,
         "icon": skin_icon,
         "tier": skin_tier if skin_tier is not None else "None",
-        "hash": calculate_hash(f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}") # 检查资源完整性
+        "hash": calculate_hash(
+            f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}"
+        ),  # 检查资源完整性
     }
 
 
@@ -195,10 +199,7 @@ async def get_skin() -> Optional[Dict[str, Any]]:
         )
         if resp:
             skin = resp.get("data", [])
-            return {
-                parse_skin(skin)["uuid"]: parse_skin(skin)
-                for skin in skin
-            }
+            return {parse_skin(skin)["uuid"]: parse_skin(skin) for skin in skin}
     except Exception as e:
         print(f"获取武器皮肤信息时发生错误：{e}")
     return None
@@ -234,10 +235,7 @@ async def get_tier() -> Optional[Dict[str, Any]]:
         resp = await get_request_json(url=base_url, sub_url="contenttiers/")
         if resp:
             tier = resp.get("data", [])
-            return {
-                parse_tier(tier)["uuid"]: parse_tier(tier)
-                for tier in tier
-            }
+            return {parse_tier(tier)["uuid"]: parse_tier(tier) for tier in tier}
     except Exception as e:
         print(f"获取皮肤等级信息时发生错误：{e}")
     return None
@@ -274,9 +272,7 @@ async def get_mission() -> Optional[Dict]:
         解析后的任务数据
     """
     try:
-        resp = await get_request_json(
-            url=base_url, sub_url="missions?language=all"
-        )
+        resp = await get_request_json(url=base_url, sub_url="missions?language=all")
         if resp:
             missions = {}
             for mission in resp["data"]:
@@ -595,8 +591,7 @@ async def get_currencies() -> Optional[Dict]:
         resp = await get_request_json("currencies?language=all")
         if resp:
             return {
-                currency["uuid"]: parse_currency(currency)
-                for currency in resp["data"]
+                currency["uuid"]: parse_currency(currency) for currency in resp["data"]
             }
     except Exception as e:
         print(f"获取货币信息时发生错误：{e}")
@@ -615,7 +610,6 @@ def parse_buddy(buddy: Dict[str, Any]) -> Dict[str, Any]:
     buddy_uuid = buddy["levels"][0]["uuid"]
     buddy_names = buddy["displayName"]
     buddy_icon = buddy["levels"][0]["displayIcon"]
-
 
     return {
         "uuid": buddy_uuid,

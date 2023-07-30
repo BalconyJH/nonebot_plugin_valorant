@@ -43,21 +43,34 @@ async def check_db():
     logger.info("数据库连接成功")
 
 
-async def generate_database_key(key_path: str=plugin_config.valorant_database_key_path):
+async def generate_database_key(key_path: str = plugin_config.valorant_database_key_path):
+    """
+    生成或获取Valorant插件数据库的密钥。
+
+    参数：
+        key_path (str): 可选参数，指定密钥文件的路径，默认为plugin_config.valorant_database_key_path。
+
+    如果未提供密钥文件路径，则会自动生成一个新的密钥并保存到默认路径下的文件中。
+    如果提供了密钥文件路径，则尝试从文件中读取密钥。
+
+    """
+
     if key_path is None:
+        # 自动生成一个新的密钥
         key = Fernet.generate_key()
+        default_key_path = "nonebot_plugin_valorant/data/key.json"
         try:
-            with open("nonebot_plugin_valorant/data/key.json", "w") as f:
+            with open(default_key_path, "w") as f:
                 f.write(key.decode())
         except FileNotFoundError:
             logger.warning("密钥生成失败")
         else:
             logger.info("数据库密钥获取成功")
     else:
+        # 从指定路径读取密钥
         try:
             with open(key_path, "r") as f:
-                key = f.read()
-
+                f.read()
         except FileNotFoundError:
             logger.warning("密钥获取失败")
         else:
@@ -68,10 +81,7 @@ async def generate_database_key(key_path: str=plugin_config.valorant_database_ke
 async def on_startup():
     """启动前检查"""
     await asyncio.gather(
-        check_proxy(),
-        check_db(),
-        init_cache(),
-        generate_database_key()
+        check_proxy(), check_db(), init_cache(), generate_database_key()
     )
 
 

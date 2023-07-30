@@ -13,6 +13,44 @@ Base = declarative_base()
 
 
 class BaseModel(Base):
+    """
+    This class is the base model for all other models in the project. It provides common methods for querying, adding, deleting, and updating data in the database.
+
+    Attributes:
+        __abstract__ (bool): True if this is an abstract class, False otherwise.
+
+    Methods:
+        get(cls, session: Session, **kwargs):
+            Retrieve a list of instances of the model that match the provided keyword arguments.
+
+        add(cls, session: Session, **kwargs):
+            Create a new instance of the model with the provided keyword arguments and add it to the session.
+
+        delete(cls, session: Session, **kwargs) -> bool:
+            Delete the instance(s) of the model that match the provided keyword arguments.
+
+        update(cls, q, **kwargs) -> bool:
+            Update the instance(s) of the model that match the provided query and keyword arguments.
+
+    Note:
+        - This class does not have a constructor (__init__) as it is an abstract class.
+        - The methods in this class are asynchronous.
+
+    Example usage:
+
+        # Get instance(s)
+        instances = await BaseModel.get(session, name='John')
+
+        # Add new instance
+        await BaseModel.add(session, name='John', age=30)
+
+        # Delete instance(s)
+        deleted = await BaseModel.delete(session, age=30)
+
+        # Update instance(s)
+        updated = await BaseModel.update(session, {'name': 'John'}, age=40)
+    """
+
     __abstract__ = True
 
     @classmethod
@@ -42,70 +80,37 @@ class BaseModel(Base):
             return True
         return False
 
-    # @classmethod
-    # def matches_data(cls, data: Dict) -> bool:
-    #     """
-    #     检查数据UUID是否与模型匹配。
-    #     :param
-    #     - data:["uuid"]
-    #     :return:
-    #     - bool: 数据UUID与模型匹配返回True，否则返回False。
-    #     """
-    #     # return data.get("uuid") == str(cls.uuid)
-
-    #     # TODO: 检查数据是否匹配, 添加读取数据库uuid比对
-
-    # @classmethod
-    # def merge(cls, session, **kwargs):
-    #     query = cls.get(session, uuid=kwargs["uuid"])
-    #     if query.count():
-    #         query.update(kwargs)
-    #         session.commit()
-    #     else:
-    #         cls.add(session, **kwargs)
-
 
 class UserShop(BaseModel):
     """
-    用户商店类。
+    This class represents a user's shop in the application.
 
-    :ivar uuid: 玩家UUID。
-    :vartype uuid: str
+    Attributes:
+        uuid (str): The unique identifier of the user shop.
+        bonus_store (Relationship["BonusStore"]): The relationship between the user shop and associated bonus store.
+        skins_store (Relationship["SkinsStore"]): The relationship between the user shop and associated skins store.
+        accessory_store (Relationship["AccessoryStore"]): The relationship between the user shop and associated accessory store.
 
-    :ivar bonus_store: 夜市。
-    :vartype bonus_store: BonusStore
-
-    :ivar skins_store: 皮肤商店。
-    :vartype skins_store: SkinsStore
-
-    :ivar accessory_store: 配件商店。
-    :vartype accessory_store: AccessoryStore
-
-    # :ivar featured_bundle: 特色捆绑包。
-    # :vartype featured_bundle: FeaturedBundle
-    #
-    # :ivar upgrade_currency_store: 升级货币商店。
-    # :vartype upgrade_currency_store: UpgradeCurrencyStore
     """
 
     __tablename__ = "user_shop"
 
     uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-
-    bonus_store: Mapped["BonusStore"] = relationship("BonusStore", backref="user_shop", primaryjoin="UserShop.uuid == foreign(BonusStore.uuid)")
-    skins_store: Mapped["SkinsStore"] = relationship("SkinsStore", backref="user_shop", primaryjoin="UserShop.uuid == foreign(SkinsStore.uuid)")
-    accessory_store: Mapped["AccessoryStore"] = relationship(
-        "AccessoryStore", backref="user_shop",
-        primaryjoin="UserShop.uuid == foreign(AccessoryStore.uuid)"
+    bonus_store: Mapped["BonusStore"] = relationship(
+        "BonusStore",
+        backref="user_shop",
+        primaryjoin="UserShop.uuid == foreign(BonusStore.uuid)",
     )
-
-
-#     featured_bundle: "FeaturedBundle" = relationship(
-#         "FeaturedBundle", backref="user_shop"
-#     )
-#     upgrade_currency_store: "UpgradeCurrencyStore" = relationship(
-#         "UpgradeCurrencyStore", backref="user_shop"
-#     )
+    skins_store: Mapped["SkinsStore"] = relationship(
+        "SkinsStore",
+        backref="user_shop",
+        primaryjoin="UserShop.uuid == foreign(SkinsStore.uuid)",
+    )
+    accessory_store: Mapped["AccessoryStore"] = relationship(
+        "AccessoryStore",
+        backref="user_shop",
+        primaryjoin="UserShop.uuid == foreign(AccessoryStore.uuid)",
+    )
 
 
 # class FeaturedBundle:
@@ -118,22 +123,15 @@ class UserShop(BaseModel):
 
 class AccessoryStore(BaseModel):
     """
-    配件商店类。
+    This class represents an accessory store entry in the database.
 
-    :ivar uuid: 玩家UUID。
-    :vartype uuid: str
+    Attributes:
+        uuid (str): The unique identifier of the player.
+        offer_id (str): The ID of the offer.
+        cost_type (str): The currency type used for the cost.
+        cost (str): The price of the accessory.
+        remaining_duration (str): The remaining duration of the accessory.
 
-    :ivar offer_id: 配件商店的优惠 ID。
-    :vartype offer_id: str
-
-    :ivar cost_type: 配件商店的消费类型。
-    :vartype cost_type: str
-
-    :ivar cost: 配件商店的价格。
-    :vartype cost: str
-
-    :ivar remaining_duration: 配件商店的剩余持续时间。
-    :vartype remaining_duration: str
     """
 
     __tablename__ = "accessory_store"
@@ -147,23 +145,14 @@ class AccessoryStore(BaseModel):
 
 class SkinsStore(BaseModel):
     """
-    皮肤商店类。
+    This class represents a skins store entry in the database.
 
-
-    :ivar uuid: 玩家UUID。
-    :vartype uuid: str
-
-    :ivar offer_id_1: 皮肤商店的优惠 ID 1。
-    :vartype offer_id_1: str
-
-    :ivar offer_id_2: 皮肤商店的优惠 ID 2。
-    :vartype offer_id_2: str
-
-    :ivar offer_id_3: 皮肤商店的优惠 ID 3。
-    :vartype offer_id_3: str
-
-    :ivar offer_id_4: 皮肤商店的优惠 ID 4。
-    :vartype offer_id_4: str
+    Attributes:
+        uuid (str): Player UUID.
+        offer_id_1 (str): Currency offer ID 1.
+        offer_id_2 (str): Currency offer ID 2.
+        offer_id_3 (str): Currency offer ID 3.
+        offer_id_4 (str): Currency offer ID 4.
     """
 
     __tablename__ = "skins_store"
@@ -177,28 +166,17 @@ class SkinsStore(BaseModel):
 
 class BonusStore(BaseModel):
     """
-    夜市类。
+    Class representing a Bonus Store.
 
-    :ivar uuid: 夜市的 UUID。
-    :vartype uuid: str
+    Attributes:
+        uuid (str): The UUID of the player.
+        offer_id (str): The ID of the currency offer.
+        cost_type (str): The currency type.
+        cost (str): The price of the currency.
+        discount (str): The currency discount.
+        discount_cost (str): The price of the currency after discount.
+        remaining_duration (str): The remaining duration.
 
-    :ivar offer_id: 夜市的优惠 ID。
-    :vartype offer_id: str
-
-    :ivar cost_type: 夜市的消费类型。
-    :vartype cost_type: str
-
-    :ivar cost: 夜市的价格。
-    :vartype cost: str
-
-    :ivar discount: 夜市的折扣。
-    :vartype discount: str
-
-    :ivar discount_cost: 夜市的折扣价格。
-    :vartype discount_cost: str
-
-    :ivar remaining_duration: 夜市的剩余持续时间。
-    :vartype remaining_duration: str
     """
 
     __tablename__ = "bonus_store"
@@ -214,37 +192,19 @@ class BonusStore(BaseModel):
 
 class User(BaseModel):
     """
-    用户类。
+    This model represents a user and contains various information about the user, such as unique identifier, cookie, access token, etc.
 
-    该模型表示一个用户，包含了用户的各种信息，例如唯一标识符、cookie、access token等。
+    Attributes:
+        puuid (str): The unique identifier of the user.
+        cookie (JSON): The user's cookie.
+        access_token (Text): The user's access token.
+        token_id (Text): The user's token id.
+        emt (Text): The user's entitlements_token.
+        username (str): The user's username.
+        region (str): The region where the user is located.
+        qq_uid (int): The user's QQ uid.
+        timestamp (DateTime): The update time of the user's information.
 
-
-    :ivar puuid: 用户的唯一标识符。
-    :vartype puuid: str
-
-    :ivar cookie: 用户的 cookie。
-    :vartype cookie: JSON
-
-    :ivar access_token: 用户的 access token。
-    :vartype access_token: Text
-
-    :ivar token_id: 用户的 token id。
-    :vartype token_id: Text
-
-    :ivar emt: 用户的 entitlements_token。
-    :vartype emt: Text
-
-    :ivar username: 用户的用户名。
-    :vartype username: str
-
-    :ivar region: 用户所在的地区。
-    :vartype region: str
-
-    :ivar qq_uid: 用户的 QQ uid。
-    :vartype qq_uid: int
-
-    :ivar timestamp: 用户信息的更新时间。
-    :vartype timestamp: DateTime
     """
 
     __tablename__ = "user"
@@ -265,23 +225,15 @@ class User(BaseModel):
 
 class WeaponSkin(BaseModel):
     """
-    武器皮肤类。
+    This class represents a weapon skin in the database.
 
+    Attributes:
+        uuid (str): The unique identifier for the weapon skin, used as the primary key.
+        names (JSON): The names of the weapon skin.
+        icon (str): The icon of the weapon skin.
+        tier (str): The tier of the weapon skin.
+        hash (str): The hash value of the weapon skin resource.
 
-    :ivar uuid: 武器皮肤的唯一标识符，作为主键。
-    :vartype uuid: str
-
-    :ivar names: 武器皮肤的名称。
-    :vartype names: JSON
-
-    :ivar icon: 武器皮肤的图标。
-    :vartype icon: str
-
-    :ivar tier: 武器皮肤的级别。
-    :vartype tier: str
-
-    :ivar hash: 武器皮肤资源的哈希值。
-    :vartype hash: str
     """
 
     __tablename__ = "weapon_skins"
@@ -298,31 +250,18 @@ class WeaponSkin(BaseModel):
 
 class Version(BaseModel):
     """
-    版本类。
+    A class representing the Version table in a database.
 
-    :ivar manifestId: 清单标识。
-    :vartype manifestId: str
+    Attributes:
+        manifestId (str): The primary key of the table, representing the manifest id.
+        branch (str): The branch of the version.
+        version (str): The version of the application.
+        buildVersion (str): The build version of the application.
+        engineVersion (str): The engine version of the application.
+        riotClientVersion (str): The Riot client version of the application.
+        riotClientBuild (str): The Riot client build of the application.
+        buildDate (str): The build date of the application.
 
-    :ivar branch: 分支。
-    :vartype branch: str
-
-    :ivar version: 版本。
-    :vartype version: str
-
-    :ivar buildVersion: 构建版本。
-    :vartype buildVersion: str
-
-    :ivar engineVersion: 引擎版本。
-    :vartype engineVersion: str
-
-    :ivar riotClientVersion: 拳头客户端版本。
-    :vartype riotClientVersion: str
-
-    :ivar riotClientBuild: 拳头客户端构建。
-    :vartype riotClientBuild: str
-
-    :ivar buildDate: 构建日期。
-    :vartype buildDate: str
     """
 
     __tablename__ = "version"
@@ -341,12 +280,26 @@ class Version(BaseModel):
 
 
 class Tier(BaseModel):
+    """
+    Class representing a Tier entity.
+
+    Attributes:
+        uuid (str): The unique identifier of the Tier.
+        name (str): The name of the Tier.
+        icon (str): The icon associated with the Tier.
+
+
+    Example:
+        tier = Tier(uuid='123', name='Tier 1', icon='icon.png')
+
+    Note:
+        This class is a subclass of BaseModel.
+    """
+
     __tablename__ = "tier"
 
     uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-
     name: Mapped[int] = mapped_column(String(255))
-
     icon: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
@@ -354,16 +307,23 @@ class Tier(BaseModel):
 
 
 class Mission(BaseModel):
+    """
+    Represents a mission entity.
+
+    Attributes:
+        uuid (str): The unique identifier of the mission.
+        titles (str): The titles associated with the mission.
+        type (str): The type of the mission.
+        progress (str): The progress of the mission.
+        xp (str): The experience points gained from the mission.
+    """
+
     __tablename__ = "mission"
 
     uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-
     titles: Mapped[str] = mapped_column(String(255))
-
     type: Mapped[str] = mapped_column(String(255))
-
     progress: Mapped[str] = mapped_column(String(255))
-
     xp: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
@@ -371,12 +331,19 @@ class Mission(BaseModel):
 
 
 class Playercard(BaseModel):
+    """
+    Represents a player card in the game.
+
+    Attributes:
+        uuid (str): The unique identifier of the player card.
+        name (str): The name of the player card.
+        icon (str): The icon associated with the player card.
+    """
+
     __tablename__ = "playercard"
 
     uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-
     name: Mapped[str] = mapped_column(String(255))
-
     icon: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
@@ -386,12 +353,23 @@ class Playercard(BaseModel):
 
 
 class Title(BaseModel):
+    """
+    This class represents a Title in the database.
+
+    Attributes:
+        uuid (str): The UUID of the Title (primary key).
+        name (str): The name of the Title.
+        text (str): The text content of the Title.
+
+
+    Example Usage:
+        title = Title(uuid='123456789', name='Example Title', text='Lorem ipsum')
+    """
+
     __tablename__ = "title"
 
     uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-
     name: Mapped[str] = mapped_column(String(255))
-
     text: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
