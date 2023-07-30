@@ -1,13 +1,12 @@
 import json
 import re
 import ssl
-import warnings
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Any, Dict
 
 import aiohttp as aiohttp
-# import httpx
 import urllib3.exceptions
+from pydantic import BaseModel, validator
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.utils.errors import AuthenticationError
@@ -15,20 +14,40 @@ from nonebot_plugin_valorant.utils.translator import Translator
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-translator = Translator()
+message_translator = Translator().get_translations()
 
 PROXY = plugin_config.valorant_proxies
 
 
-def message_translator(message_key: str) -> str:
+class Token(BaseModel):
     """
-    获取指定消息键的翻译文本。
+    A class representing authentication token for Valorant API.
+
+    Attributes:
+        access_token (str): The API access token.
+        token_id (str): The ID of the token.
+        expires_in (str): The duration in seconds for the token to expire.
+        entitlements_token (str): The token for accessing entitlements.
+
+    Raises:
+        ValueError: If any of the required parameters is empty.
+
     """
-    return translator.gettext(message_key)
+
+    access_token: Optional[str] = None
+    token_id: Optional[str] = None
+    expires_in: Optional[str] = None
+    entitlements_token: Optional[str] = None
+
+    # noinspection PyMethodParameters
+    @validator("access_token", "token_id", "expires_in")
+    def check_token(cls, param):
+        if param is None:
+            raise ValueError(f"Param:{param} is empty")
+        return param
 
 
 # https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites/
-# 定义一个强制使用的加密套件列表
 FORCED_CIPHERS = [
     "ECDHE-ECDSA-AES256-GCM-SHA384",
     "ECDHE-ECDSA-AES128-GCM-SHA256",
@@ -50,47 +69,34 @@ FORCED_CIPHERS = [
 ]
 
 
-# class HttpxClientSession(httpx.Client):
-#     def __init__(self, proxy=PROXY, *args, **kwargs):
-#         # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
-#         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-#         ctx.minimum_version = ssl.TLSVersion.TLSv1_3
-#
-#         # 设置TLS加密算法为FORCED_CIPHERS中的算法
-#         ctx.set_ciphers(":".join(FORCED_CIPHERS))
-#
-#         # 创建代理设置
-#         proxies = {"http": proxy, "https": proxy} if proxy else {}
-#         # 调用父类的构造函数，传入参数
-#         super().__init__(
-#             *args,
-#             **kwargs,
-#             # 传入ssl上下文和代理设置
-#             verify=ctx,
-#             proxies=proxies,
-#         )
-
-
 class ClientSession(aiohttp.ClientSession):
+    """
+    A subclass of aiohttp.ClientSession with additional configurations for TLS encryption and authentication.
+
+    Attributes:
+        None
+
+    Methods:
+        - __init__(*args, **kwargs): Initialize a ClientSession object with custom configurations.
+
+        Note: This class inherits all methods and attributes from aiohttp.ClientSession.
+
+    Example:
+        # Create a ClientSession object with default configurations
+        session = ClientSession()
+    """
+
     def __init__(self, *args, **kwargs):
-        # 创建一个默认上下文，并设置最低支持TLSv1.3协议版本
         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ctx.minimum_version = ssl.TLSVersion.TLSv1_3
 
-        # 设置TLS加密算法为FORCED_CIPHERS中的算法
         ctx.set_ciphers(":".join(FORCED_CIPHERS))
 
-        # 调用父类的构造函数，传入参数
         super().__init__(
             *args,
             **kwargs,
-            # 初始化CookieJar和TCPConnector对象，同时传入ssl上下文
             cookie_jar=aiohttp.CookieJar(),
             connector=aiohttp.TCPConnector(ssl=ctx),
-        )
-        warnings.warn(
-            "The OldClass is deprecated and will be removed in future versions.",
-            DeprecationWarning,
         )
 
 
@@ -108,41 +114,43 @@ class Auth:
         self.user_agent: str = Auth.RIOT_CLIENT_USER_AGENT
 
     @staticmethod
-    def _extract_tokens(data: Dict[str, Any]) -> Dict[str, str]:
+    def _extract_tokens(data: Dict[str, Any]) -> Tuple[str, str, str]:
         """
-        从数据中提取令牌
+        Extract tokens from data
 
         Args:
-            data: 数据字典，包含响应数据
+            data (Dict[str, Any]): A dictionary containing response data
 
         Returns:
-            一个包含access_token、token_id和expires_in字段的字典
+            Tuple[str, str, str]: A tuple containing access_token, token_id, and expires_in
+
         """
         pattern = re.compile(
-            "access_token=((?:[a-zA-Z]|\d|\.|-|_)*)."
-            "*id_token=((?:[a-zA-Z]|\d|\.|-|_)*)."
-            "*expires_in=(\d*)"
+            "access_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
+            "id_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
+            "expires_in=(\d*)"
         )
         access_token, token_id, expires_in = pattern.findall(
             data["response"]["parameters"]["uri"]
         )[0]
 
-        return {
-            "access_token": access_token,
-            "token_id": token_id,
-            "expires_in": expires_in,
-        }
+        # 创建并返回Token对象
+        return access_token, token_id, expires_in
 
     @staticmethod
-    def _extract_tokens_from_uri(url: str) -> Optional[Tuple[str, Any]]:
+    async def _extract_tokens_from_uri(url: str) -> Tuple[str, str]:
         """
-        从URL中提取访问令牌和ID令牌
+        Extracts access token and ID token from a URL
 
         Args:
-            url: 包含访问令牌和ID令牌的URL字符串
+            url (str): A URL string containing access token and ID token
 
         Returns:
-            一个包含访问令牌和ID令牌的元组，如果URL不合法则返回None
+            tuple: A tuple containing access token and ID token
+
+        Raises:
+            IndexError: If the URL is invalid, raises an IndexError
+
         """
         try:
             access_token = url.split("access_token=")[1].split("&scope")[0]
@@ -150,7 +158,7 @@ class Auth:
 
             return access_token, token_id
         except IndexError as error:
-            raise IndexError("Invalid cookies") from error
+            raise IndexError("Invalid uri") from error
 
     async def authenticate(
         self, username: str, password: str
@@ -223,8 +231,8 @@ class Auth:
         if data["type"] == "response":
             # 如果身份验证成功，则从响应中提取令牌。
             response = self._extract_tokens(data)
-            access_token = response["access_token"]
-            token_id = response["token_id"]
+            access_token = response.access_token
+            token_id = response.token_id
 
             # 设置令牌的到期时间。
             expiry_token = datetime.now() + timedelta(minutes=59)
@@ -415,7 +423,7 @@ class Auth:
                 cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
             uri = data["response"]["parameters"]["uri"]
-            access_token, token_id = self._extract_tokens_from_uri(uri)
+            access_token, token_id = await self._extract_tokens_from_uri(uri)
 
             return {
                 "auth": "response",
@@ -436,14 +444,14 @@ class Auth:
         """
         该函数用于兑换 cookies。
 
-        参数：
-        cookies: 包含 cookies 的字典。
+        Args:
+            cookies: 包含 cookies 的字典。
 
-        返回值：
-        一个元组，包含兑换后的 cookies，access token 和 entitlements token。
+        Returns:
+            一个元组，包含兑换后的 cookies，access token 和 entitlements token。
 
-        Raises：
-        如果 cookies 过期则会抛出 AuthenticationError。
+        Raises:
+            如果 cookies 过期则会抛出 AuthenticationError。
         """
 
         # 将字符串类型的 cookies 转为字典类型
@@ -584,7 +592,7 @@ class Auth:
             new_cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         # 从响应 URI 中提取访问令牌和令牌 ID
-        access_token, token_id = self._extract_tokens_from_uri(await r.text())
+        access_token, token_id = await self._extract_tokens_from_uri(await r.text())
 
         # 获取资格令牌
         entitlements_token = await self.get_entitlements_token(access_token)
@@ -596,7 +604,9 @@ class Auth:
             "emt": entitlements_token,
         }
 
-    async def refresh_token(self, cookies: Dict) -> Tuple[Tuple[str, Dict], Tuple[str, Dict], Tuple[str, Dict]]:
+    async def refresh_token(
+        self, cookies: Dict
+    ) -> Tuple[Tuple[str, Dict], Tuple[str, Dict], Tuple[str, Dict]]:
         """刷新访问令牌、权限令牌和Cookie。
 
         参数:
@@ -615,4 +625,3 @@ class Auth:
         cookies = data["cookies"]
 
         return access_token, entitlements_token, cookies
-
