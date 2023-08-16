@@ -1,27 +1,27 @@
 [project]
-name = ""
-version = ""
-description = ""
+name = "nonebot_plugin_valorant"
+version = "0.0.1"
+description = "Valorant bot for qq plaform power by NoneBot2"
 authors = [
     {name = "BalconyJH", email = "balconyjh@gmail.com"},
 ]
 dependencies = [
-    "setuptools>=67.8.0",
-    "nonebot2>=2.0.1",
+    "nonebot2[fastapi]>=2.0.1",
     "nonebot-plugin-apscheduler>=0.3.0",
-    "nb-cli>=1.1.2",
-    "nonebot-adapter-onebot>=2.2.3",
-    "nonebot-adapter-kaiheila>=0.2.6",
-    "cryptography>=41.0.1",
-    "SQLAlchemy>=2.0.16",
-    "sqlalchemy-utils>=0.41.1",
-    "pymysql>=1.0.3",
-    "nonebot-plugin-send-anything-anywhere>=0.2.7",
-    "sentry-sdk>=1.26.0",
-    "pydantic>=1.10.12",
+    "nb-cli>=1.2.2",
     "nonebot-plugin-sentry>=0.4.1",
+    "nonebot-plugin-send-anything-anywhere>=0.3.0",
+    "pymysql>=1.1.0",
+    "SQLAlchemy>=2.0.20",
+    "sqlalchemy-utils>=0.41.1",
+    "nonebot-adapter-onebot>=2.2.4",
+    "cryptography>=41.0.3",
+    "nonebot-adapter-kaiheila>=0.2.8",
+    "setuptools>=68.1.0",
+    "nonebot-plugin-htmlrender>=0.2.1",
 ]
 requires-python = ">=3.11"
+readme = "README.md"
 license = {text = "MIT"}
 
 [build-system]
@@ -36,3 +36,7 @@ adapters = [
 plugins = ["nonebot_plugin_sentry"]
 plugin_dirs = ["nonebot_plugin_valorant/plugins"]
 builtin_plugins = ["echo"]
+[tool.pdm.dev-dependencies]
+dev = [
+    "nonebot-plugin-htmlrender>=0.2.1",
+]

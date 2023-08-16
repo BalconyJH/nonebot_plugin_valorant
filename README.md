@@ -44,6 +44,8 @@
 |  ap   |      ap       |
 |  kr   |      kr       |
 
+### ⚠️ playwright会导致 --reload参数失效 (nonebot_plugin_htmlrender依赖)
+
 ## 📋 路线图
 
 请访问本项目的 [Projects](https://github.com/users/BalconyJH/projects/4)
