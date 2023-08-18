@@ -3,7 +3,6 @@ from pathlib import Path
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot.log import logger
-from nonebot_plugin_valorant.utils.errors import FileNotFoundError
 
 TRANSLATIONS_PATH = (
     Path(__file__).parent.parent
@@ -14,6 +13,10 @@ TRANSLATIONS_PATH = (
 
 
 class Translator:
+    """
+    消息翻译组件。
+    """
+
     def __init__(self):
         """
         加载指定语言的翻译文件并初始化翻译器。
@@ -23,42 +26,34 @@ class Translator:
                 self.translations = json.load(f)
         except FileNotFoundError as e:
             logger.error(f"找不到翻译文件: {e}")
-            raise FileNotFoundError("翻译文件未找到") from e
 
-    @staticmethod
-    def find_value_by_key(data, key):
+    def extract_value(self, key_sequence):
         """
-        获取指定键的值。
+        从给定的JSON数据中，根据键序列抽取值
+        :param self: 输入的JSON数据
+        :param key_sequence: 键序列，例如"commands.login.NAME"
+        :return: 如果找到，则返回对应的值，否则返回None
         """
-        stack = [data]
-        while stack:
-            item = stack.pop()
-            if isinstance(item, dict):
-                for k, v in item.items():
-                    if k == key:
-                        return v
-                    stack.append(v)
-            elif isinstance(item, list):
-                stack.extend(iter(item))
-            elif key in (item, item.split(".")[-1]):
-                return item
-        return None
 
-    def gettext(self, message_keys):
+        keys = key_sequence.split(".")
+        data = self.translations
+
+        for key in keys:
+            if key in data:
+                data = data[key]
+            else:
+                raise ValueError
+
+        return data
+
+    def get_local_translation(self, message_keys):
         """
         获取指定消息键的翻译文本。
         """
-        return self.find_value_by_key(self.translations, message_keys)
+        return self.extract_value(message_keys)
 
-    def get_translations(self, *message_keys):
+    def get_local_translations(self, *message_keys):
         """
         获取多个消息键的翻译文本。
         """
-        return {key: self.gettext(key) for key in message_keys}
-
-
-# def message_translator(message_key: str) -> str:
-#     """
-#     获取指定消息键的翻译文本。
-#     """
-#     return Translator().gettext(message_key)
+        return {key: self.get_local_translation(key) for key in message_keys}
