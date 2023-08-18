@@ -1,37 +1,6 @@
-from typing import Union
-
-from nonebot.adapters import Bot
-from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
-from nonebot.exception import FinishedException
-
-
-async def send_error_msg(
-        bot: Bot, event: Union[GroupMessageEvent, PrivateMessageEvent], error_message: str
-):
-    """
-    发送错误消息的异步函数。
-
-    Args:
-        bot (Bot): 机器人对象。
-        event (Union[GroupMessageEvent, PrivateMessageEvent]): 事件对象。
-        error_message (str): 错误消息。
-
-    Returns:
-        None
-    """
-    if isinstance(event, PrivateMessageEvent):
-        if event.sub_type == "group":
-            raise FinishedException
-        return
-    await bot.send(event, error_message)
-
-
 class TranslatableError(Exception):
     def __init__(self, message):
         self.message = message
-
-    # def __str__(self):
-    #     return message_translator(self.message)
 
 
 class NotOwner(TranslatableError):
@@ -106,5 +75,9 @@ class DatabaseError(TranslatableError):
     pass
 
 
-class FileNotFoundError(TranslatableError):
+class ParameterTypeError(TranslatableError):
+    """
+    当参数类型错误时引发的异常。
+    """
+
     pass
