@@ -151,8 +151,9 @@
     }
   },
   "errors": {
-    "UNKNOW_ERROR": "发生了未知的错误",
+    "UNKNOWN_ERROR": "发生了未知的错误",
     "AUTH": {
+      "UNSUPPORTED_REGION": "暂不支持的地区",
       "INVALID_PASSWORD": "您的用户名或密码可能不正确！",
       "RATELIMIT": "请稍等片刻，然后再试一次。",
       "COOKIES_EXPIRED": "Cookies 已过期，请再次使用`/login` 登录！",
@@ -162,8 +163,8 @@
       "INPUT_2FA_CODE": "请输入两步验证代码！",
       "2FA_ENABLE": "您的账号启用了两步验证！",
       "2FA_TO_EMAIL": "Riot发送了一个代码",
-      "2FA_INVALID_CODE": "代码无效。请再次使用`/login`",
-      "TEMP_LOGIN_NOT_SUPPORT_2FA": "不支持 2FA，请使用 `/login` 并使用其他命令不包含用户名和密码。"
+      "2FA_INVALID_CODE": "2FA 验证码无效",
+      "TEMP_LOGIN_NOT_SUPPORT_2FA": "暂不支持的2FA登录"
     },
     "DATABASE": {
       "NOT_LOGIN": "您还没有登录！请使用`/login`登录！",
@@ -174,10 +175,6 @@
     "API": {
       "FAILED_ACTIVE": "初始化 API 失败",
       "REQUEST_FAILED": "API 响应失败！"
-    },
-    "SETUP_EMOJI": {
-      "MISSING_PERM": "我没有权限创建表情！",
-      "FAILED_CREATE_EMOJI": "我无法创建表情符号，请重试"
     }
   }
 }
