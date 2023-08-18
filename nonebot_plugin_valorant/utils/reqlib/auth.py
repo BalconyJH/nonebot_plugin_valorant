@@ -2,7 +2,7 @@ import json
 import re
 import ssl
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, Any, Dict
+from typing import Optional, Tuple, Any, Dict, Type
 
 import aiohttp as aiohttp
 import urllib3.exceptions
@@ -14,7 +14,7 @@ from nonebot_plugin_valorant.utils.translator import Translator
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-message_translator = Translator().get_translations()
+message_translator = Translator().get_local_translation
 
 PROXY = plugin_config.valorant_proxies
 
@@ -34,13 +34,13 @@ class Token(BaseModel):
 
     """
 
-    access_token: Optional[str] = None
-    token_id: Optional[str] = None
-    expires_in: Optional[str] = None
-    entitlements_token: Optional[str] = None
+    access_token: Optional[str]
+    token_id: Optional[str]
+    expires_in: Optional[str]
+    entitlements_token: Optional[str]
 
     # noinspection PyMethodParameters
-    @validator("access_token", "token_id", "expires_in")
+    @validator("access_token", "token_id", "expires_in", "entitlements_token")
     def check_token(cls, param):
         if param is None:
             raise ValueError(f"Param:{param} is empty")
@@ -104,6 +104,8 @@ class Auth:
     RIOT_CLIENT_USER_AGENT = (
         "RiotClient/60.0.6.4770705.4749685 rso-auth (Windows;10;;Professional, x64)"
     )
+    AUTH_URL = "https://auth.riotgames.com/api/v1/authorization"
+
 
     def __init__(self) -> None:
         self._headers: Dict[str, str] = {
@@ -114,7 +116,7 @@ class Auth:
         self.user_agent: str = Auth.RIOT_CLIENT_USER_AGENT
 
     @staticmethod
-    def _extract_tokens(data: Dict[str, Any]) -> Tuple[str, str, str]:
+    def _extract_tokens(data: Dict[str, Any]) -> Type[Token]:
         """
         Extract tokens from data
 
@@ -130,15 +132,15 @@ class Auth:
             "id_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
             "expires_in=(\d*)"
         )
-        access_token, token_id, expires_in = pattern.findall(
+        Token.access_token, Token.token_id, Token.expires_in = pattern.findall(
             data["response"]["parameters"]["uri"]
         )[0]
 
         # 创建并返回Token对象
-        return access_token, token_id, expires_in
+        return Token
 
     @staticmethod
-    async def _extract_tokens_from_uri(url: str) -> Tuple[str, str]:
+    async def _extract_tokens_from_uri(url: str) -> Type[Token]:
         """
         Extracts access token and ID token from a URL
 
@@ -153,10 +155,10 @@ class Auth:
 
         """
         try:
-            access_token = url.split("access_token=")[1].split("&scope")[0]
-            token_id = url.split("id_token=")[1].split("&")[0]
+            Token.access_token = url.split("access_token=")[1].split("&scope")[0]
+            Token.token_id = url.split("id_token=")[1].split("&")[0]
 
-            return access_token, token_id
+            return Token
         except IndexError as error:
             raise IndexError("Invalid uri") from error
 
@@ -190,7 +192,7 @@ class Auth:
 
         # 发送初始授权请求。
         response = await session.post(
-            "https://auth.riotgames.com/api/v1/authorization",
+            self.AUTH_URL,
             json=data,
             headers=self._headers,
             proxy=PROXY,
@@ -211,7 +213,7 @@ class Auth:
 
         # 发送身份验证请求。
         async with session.put(
-            "https://auth.riotgames.com/api/v1/authorization",
+            self.AUTH_URL,
             json=data,
             headers=self._headers,
             cookies=cookies["cookie"],
@@ -226,7 +228,7 @@ class Auth:
         await session.close()
         # 请求过多返回"error" = "rate_limited"
         if data.get("error") == "rate_limited":
-            raise AuthenticationError(message_translator("验证次数过多，请等待几分钟并重试。"))
+            raise AuthenticationError(message_translator("errors.AUTH.RATELIMIT"))
         # 处理身份验证响应。
         if data["type"] == "response":
             # 如果身份验证成功，则从响应中提取令牌。
@@ -250,7 +252,7 @@ class Auth:
         elif data["type"] == "multifactor":
             if response.status == 429:
                 # 如果用户发送了太多请求，请引发 AuthenticationError。
-                raise AuthenticationError(message_translator("验证次数过多，请等待几分钟并重试。"))
+                raise AuthenticationError(message_translator("errors.AUTH.RATELIMIT"))
 
             method = data["multifactor"]["method"]
             if method == "email":
@@ -262,10 +264,14 @@ class Auth:
                 }
             else:
                 # 如果身份验证需要基于不支持的 2FA 方法，则引发 AuthenticationError。
-                raise AuthenticationError(message_translator("不支持的 2FA 方法"))
+                raise AuthenticationError(
+                    message_translator("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
+                )
         else:
             # 如果身份验证失败，则引发 AuthenticationError。
-            raise AuthenticationError(message_translator("您的用户名或密码可能不正确！"))
+            raise AuthenticationError(
+                message_translator("errors.AUTH.INVALID_PASSWORD")
+            )
 
     @staticmethod
     async def get_entitlements_token(access_token: str) -> Optional[str]:
@@ -300,7 +306,9 @@ class Auth:
         try:
             entitlements_token = data["entitlements_token"]
         except KeyError as e:
-            raise AuthenticationError(message_translator("COOKIES_EXPIRED")) from e
+            raise AuthenticationError(
+                message_translator("errors.AUTH.COOKIES_EXPIRED")
+            ) from e
         else:
             return entitlements_token
 
@@ -336,12 +344,10 @@ class Auth:
             puuid = data["sub"]
             name = data["acct"]["game_name"]
             tag = data["acct"]["tag_line"]
-        except KeyError as e:
+        except KeyError:
             raise AuthenticationError(
-                message_translator(
-                    "无法从响应中提取所需的用户信息",
-                )
-            ) from e
+                message_translator("errors.AUTH.NO_NAME_TAG")
+            )
         else:
             return puuid, name, tag
 
@@ -380,8 +386,10 @@ class Auth:
 
         try:
             region = data["affinities"]["live"]
-        except KeyError as e:
-            raise AuthenticationError(message_translator("无法从响应中提取所需的区域信息")) from e
+        except KeyError:
+            raise AuthenticationError(
+                message_translator("errors.AUTH.UNSUPPORTED_REGION")
+            )
         else:
             return region
 
@@ -406,7 +414,7 @@ class Auth:
 
         # 发送输入 2FA 验证码请求。
         async with session.put(
-            "https://auth.riotgames.com/api/v1/authorization",
+            self.AUTH_URL,
             headers=self._headers,
             json=data,
             cookies=cookies["cookie"],
@@ -423,24 +431,21 @@ class Auth:
                 cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
             uri = data["response"]["parameters"]["uri"]
-            access_token, token_id = await self._extract_tokens_from_uri(uri)
+            extract_tokens = await self._extract_tokens_from_uri(uri)
 
             return {
                 "auth": "response",
                 "data": {
                     "cookie": cookies,
-                    "access_token": access_token,
-                    "token_id": token_id,
+                    "access_token": extract_tokens.access_token,
+                    "token_id": extract_tokens.token_id,
                 },
             }
-        # 超时判断
-        if data["type"] == "multifactor":
-            raise AuthenticationError(message_translator("输入的 2FA 验证码因超时失效"))
+        raise AuthenticationError(
+            message_translator("errors.AUTH.2FA_INVALID_CODE")
+        )
 
-        # 否则引发 AuthenticationError。
-        raise AuthenticationError(message_translator("输入的 2FA 验证码无效"))
-
-    async def redeem_cookies(self, cookies: Dict) -> Dict[str, Tuple[str, Dict]]:
+    async def redeem_cookies(self, cookies: Dict) -> dict[str, str | None | dict[str, dict[Any, Any]]]:
         """
         该函数用于兑换 cookies。
 
@@ -477,10 +482,10 @@ class Auth:
 
         # 如果 HTTP 状态码不为 303 或者响应的 Location 以 /auth 开头则说明 cookies 过期，抛出 AuthenticationError
         if r.status != 303:
-            raise AuthenticationError(message_translator("COOKIES_EXPIRED"))
+            raise AuthenticationError(message_translator("errors.AUTH.COOKIES_EXPIRED"))
 
         if r.headers["Location"].startswith("/auth"):
-            raise AuthenticationError(message_translator("COOKIES_EXPIRED"))
+            raise AuthenticationError(message_translator("errors.AUTH.COOKIES_EXPIRED"))
 
         # 复制原有 cookies
         old_cookie = cookies.copy()
@@ -490,16 +495,14 @@ class Auth:
         for cookie in r.cookies.items():
             new_cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
-        # 关闭 HTTP 会话
         await session.close()
 
-        # 解析 access token 和 entitlements token
-        access_token, token_id = self._extract_tokens_from_uri(data)
-        entitlements_token = await self.get_entitlements_token(access_token)
+        extract_tokens = await self._extract_tokens_from_uri(data)
+        entitlements_token = await self.get_entitlements_token(extract_tokens.access_token)
 
         return {
             "cookies": new_cookies,
-            "access_token": access_token,
+            "access_token": extract_tokens.access_token,
             "entitlements_token": entitlements_token,
         }
 
