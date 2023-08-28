@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, List, Optional
 
 from nonebot import get_driver
 from pydantic import BaseSettings, Extra
@@ -18,7 +18,7 @@ class Config(BaseSettings, extra=Extra.ignore):
         language_type (str): The type of language to use in the application's responses.
     """
     valorant_database: str = ""
-    valorant_database_key_path: str = None
+    valorant_database_key_path: Optional[str] = ""
     valorant_proxies: str = ""
     valorant_timeout: int
     valorant_to_me: bool = True
