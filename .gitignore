@@ -144,11 +144,13 @@ dmypy.json
 
 # idea
 .idea/
+.vscode/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 *.db
 .pdm.toml
 /nonebot_plugin_valorant/resources/cache/
 /nonebot_plugin_valorant/data/
+
 
 
