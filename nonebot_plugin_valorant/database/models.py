@@ -1,12 +1,12 @@
-from sqlalchemy import JSON, Column, DateTime, String, Text, func
+from sqlalchemy import JSON, Text, Column, String, Boolean, DateTime, func
 
 # from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Mapped,
-    mapped_column,
     Session,
-    declarative_base,
     relationship,
+    mapped_column,
+    declarative_base,
 )
 
 Base = declarative_base()
@@ -15,38 +15,38 @@ Base = declarative_base()
 class BaseModel(Base):
     """
     This class is the base model for all other models in the project. It provides common methods for querying, adding, deleting, and updating data in the database.
-    
+
     Attributes:
         __abstract__ (bool): True if this is an abstract class, False otherwise.
-    
+
     Methods:
         get(cls, session: Session, **kwargs):
             Retrieve a list of instances of the model that match the provided keyword arguments.
-    
+
         add(cls, session: Session, **kwargs):
             Create a new instance of the model with the provided keyword arguments and add it to the session.
-    
+
         delete(cls, session: Session, **kwargs) -> bool:
             Delete the instance(s) of the model that match the provided keyword arguments.
-    
+
         update(cls, q, **kwargs) -> bool:
             Update the instance(s) of the model that match the provided query and keyword arguments.
-    
+
     Note:
         - This class does not have a constructor (__init__) as it is an abstract class.
         - The methods in this class are asynchronous.
-    
+
     Example usage:
-    
+
         # Get instance(s)
         instances = await BaseModel.get(session, name='John')
-    
+
         # Add new instance
         await BaseModel.add(session, name='John', age=30)
-    
+
         # Delete instance(s)
         deleted = await BaseModel.delete(session, age=30)
-    
+
         # Update instance(s)
         updated = await BaseModel.update(session, {'name': 'John'}, age=40)
     """
@@ -274,6 +274,7 @@ class Version(BaseModel):
     riotClientVersion: Mapped[str] = mapped_column(String(255))
     riotClientBuild: Mapped[str] = mapped_column(String(255))
     buildDate: Mapped[str] = mapped_column(String(255))
+    initial: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
         return f"<Version(uuid='{self.uuid}', manifestId='{self.manifestId}', branch='{self.branch}', version='{self.version}', buildVersion='{self.buildVersion}', engineVersion='{self.engineVersion}', riotClientVersion='{self.riotClientVersion}', riotClientBuild='{self.riotClientBuild}', buildDate='{self.buildDate}')>"

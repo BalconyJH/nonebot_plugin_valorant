@@ -4,24 +4,46 @@ import urllib3
 
 from nonebot_plugin_valorant.utils.errors import HandshakeError
 from nonebot_plugin_valorant.utils.reqlib.client import get_client_version
-
 from nonebot_plugin_valorant.utils.reqlib.request_res import (
     base_endpoint,
-    base_endpoint_glz,
-    base_endpoint_shared,
     get_request_json,
     put_request_json,
+    base_endpoint_glz,
+    base_endpoint_shared,
 )
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class EndpointAPI:
-    def __build_headers(self, headers) -> Dict[str, Any]:
+    def __init__(self, auth: Mapping[str, Any]) -> None:
+        from .auth import Auth
+
+        self.auth = Auth()
+
+        try:
+            self.headers = self.__build_headers(auth["headers"])
+            self.puuid = auth["puuid"]
+            self.region = auth["region"]
+            self.player = auth["player_name"]
+            self.locale_code = auth.get("locale_code", "en-US")
+            self.__format_region()
+            self.__build_urls()
+        except Exception as e:
+            raise HandshakeError("errors.API.FAILED_ACTIVE") from e
+
+        # client platform
+        # noinspection SpellCheckingInspection
+        self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
+
+        # language
+        self.locale_code = "en-US"
+
+    async def __build_headers(self, headers) -> Dict[str, Any]:
         """build headers"""
 
         headers["X-Riot-ClientPlatform"] = self.client_platform
-        headers["X-Riot-ClientVersion"] = get_client_version()
+        headers["X-Riot-ClientVersion"] = await get_client_version()
         return headers
 
     def __build_urls(self):
@@ -52,69 +74,38 @@ class EndpointAPI:
             None
         """
 
-        # 地区到分区的映射关系
         region_shard_override = {
             "latam": "na",
             "br": "na",
         }
 
-        # 分区到地区的映射关系
         shard_region_override = {"pbe": "na"}
 
-        # 将 self.shard 设置为 self.region 的初始值
         self.shard = self.region
 
-        # 如果 self.region 在 region_shard_override 的键中
         if self.region in region_shard_override:
-            # 将 self.shard 设置为对应的分区
             self.shard = region_shard_override[self.region]
 
-        # 如果 self.shard 在 shard_region_override 的键中
         if self.shard in shard_region_override:
-            # 将 self.region 设置为对应的地区
             self.region = shard_region_override[self.shard]
 
-    # contracts endpoints
-
-    def __init__(self, auth: Mapping[str, Any]) -> None:
-        from .auth import Auth
-
-        self.auth = Auth()
-
-        try:
-            self.headers = self.__build_headers(auth["headers"])
-            self.puuid = auth["puuid"]
-            self.region = auth["region"]
-            self.player = auth["player_name"]
-            self.locale_code = auth.get("locale_code", "en-US")
-            self.__format_region()
-            self.__build_urls()
-        except Exception as e:
-            raise HandshakeError("errors.API.FAILED_ACTIVE") from e
-
-        # client platform
-        # noinspection SpellCheckingInspection
-        self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
-
-        # language
-        self.locale_code = "en-US"
-
-    async def fetch(self, endpoint: str = "/", url: str = "pd") -> Dict:
-        """从 API 获取数据。
+    async def fetch(self, api_path: str = "/", api_url: str = "pd") -> Dict:
+        """
+        从 API 获取数据。
 
         Args:
-            endpoint: API 的路径，默认为根路径。
-            url: API 的 URL 名称，默认为 pd。
+            api_path (str): API 的路径，默认为根路径。
+            api_url (str): API 的 URL 名称，默认为 pd。
 
         Returns:
-            返回获取到的数据。
+            Dict: 返回获取到的数据。
 
         Raises:
             ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
         """
-        endpoint_url = getattr(self, url)
+        api_endpoint = getattr(self, api_url)
 
-        return await get_request_json(f"{endpoint_url}{endpoint}", headers=self.headers)
+        return await get_request_json(f"{api_endpoint}{api_path}", headers=self.headers)
 
     async def put(
         self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None
@@ -144,29 +135,25 @@ class EndpointAPI:
         Contracts_Fetch
         Get a list of contracts and completion status including match history
         """
-        return await self.fetch(
-            endpoint=f"/contracts/v1/contracts/{self.puuid}", url="pd"
-        )
+        return await self.fetch(f"/contracts/v1/contracts/{self.puuid}", "pd")
 
     async def fetch_content(self) -> Mapping[str, Any]:
         """
         Content_FetchContent
         Get names and ids for game content such as agents, maps, guns, etc.
         """
-        return await self.fetch(endpoint="/content-service/v3/content", url="shared")
+        return await self.fetch("/content-service/v3/content", "shared")
 
     async def fetch_account_xp(self) -> Mapping[str, Any]:
         """
         AccountXP_GetPlayer
         Get the account level, XP, and XP history for the active player
         """
-        return await self.fetch(
-            endpoint=f"/account-xp/v1/players/{self.puuid}", url="pd"
-        )
+        return await self.fetch(f"/account-xp/v1/players/{self.puuid}", "pd")
 
     async def fetch_player_mmr(self, puuid: str = None) -> Mapping[str, Any]:
         puuid = self.__check_puuid(puuid)
-        return await self.fetch(endpoint=f"/mmr/v1/players/{puuid}", url="pd")
+        return await self.fetch(f"/mmr/v1/players/{puuid}", "pd")
 
     # store endpoints
 
@@ -226,7 +213,7 @@ class EndpointAPI:
         """
         获取商店中所有商品的价格信息。
         """
-        return await self.fetch("/store/v1/offers/", url="pd")
+        return await self.fetch("/store/v1/offers/", "pd")
 
     async def get_player_storefront(self) -> Mapping[str, Any]:
         """
@@ -242,9 +229,9 @@ class EndpointAPI:
             "httpStatus": 400 验证/解码 RSO 访问令牌失败
 
         """
-        return await self.fetch(f"/store/v2/storefront/{self.puuid}", url="pd")
+        return await self.fetch(f"/store/v2/storefront/{self.puuid}", "pd")
 
-    async def get_player_wallet_balance(self) -> Mapping[str, Any]:
+    async def get_player_wallet(self) -> Mapping[str, Any]:
         """
         获取玩家钱包中的 Valorant 点数和 Radiant 点数余额。
 
@@ -255,14 +242,14 @@ class EndpointAPI:
         Returns:
             包含玩家钱包中 Valorant 点数和 Radiant 点数余额的字典。
         """
-        return await self.fetch(f"/store/v1/wallet/{self.puuid}", url="pd")
+        return await self.fetch(f"/store/v1/wallet/{self.puuid}", "pd")
 
     async def store_fetch_order(self, order_id: str) -> Mapping[str, Any]:
         """
         Store_GetOrder
         {order id}: The ID of the order. Can be obtained when creating an order.
         """
-        return await self.fetch(f"/store/v1/order/{order_id}", url="pd")
+        return await self.fetch(f"/store/v1/order/{order_id}", "pd")
 
     async def store_fetch_entitlements(self, item_type: Mapping) -> Mapping[str, Any]:
         # noinspection SpellCheckingInspection
@@ -282,7 +269,7 @@ class EndpointAPI:
         'de7caa6b-adf7-4588-bbd1-143831e786c6': '玩家称号',\n
         """
         return await self.fetch(
-            endpoint=f"/store/v1/entitlements/{self.puuid}/{item_type}", url="pd"
+            f"/store/v1/entitlements/{self.puuid}/{item_type}", "pd"
         )
 
     # local utility functions

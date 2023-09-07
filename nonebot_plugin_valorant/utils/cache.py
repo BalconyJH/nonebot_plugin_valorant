@@ -1,11 +1,12 @@
 from nonebot import logger
 
 from nonebot_plugin_valorant.database import DB
-from nonebot_plugin_valorant.utils.reqlib.client import (
-    get_manifest_id,
-    get_version_data, get_version,
-)
 from nonebot_plugin_valorant.utils.reqlib.request_res import get_skin, get_tier
+from nonebot_plugin_valorant.utils.reqlib.client import (
+    get_version,
+    get_manifest_id,
+    get_version_data,
+)
 
 
 async def cache_store():
@@ -28,17 +29,6 @@ async def cache_version():
     """
     data = await get_version()
     await DB.update_version(**data)
-    logger.info("版本信息缓存完成")
-
-
-# async def cache_manifest_id():
-#     """
-#     缓存资源清单值
-#     Returns:
-#         None
-#
-#     """
-#     return await DB.update_version("manifest_id", manifest_id=await get_manifest_id())
 
 
 async def init_cache():

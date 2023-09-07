@@ -1,17 +1,17 @@
 import json
 from contextlib import suppress
-from typing import Dict, Any, Union
+from typing import Any, Dict, Union
 
 from nonebot import on_command
+from nonebot.params import Event, T_State, ArgPlainText
+from nonebot_plugin_saa import Text, Image, MessageFactory
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent as PrivateMessageEventV11
 from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEventV12
-from nonebot.params import ArgPlainText, T_State
-from nonebot_plugin_saa import Image, Text, MessageFactory
-
 
 from nonebot_plugin_valorant.database.db import DB
-from nonebot_plugin_valorant.utils.errors import AuthenticationError
 from nonebot_plugin_valorant.utils.reqlib.auth import Auth
+from nonebot_plugin_valorant.utils import user_login_status
+from nonebot_plugin_valorant.utils.errors import AuthenticationError
 
 login = on_command("login", aliases={"登录"}, priority=5, block=True)
 auth = Auth()
@@ -50,14 +50,10 @@ async def login_db(
         await login.finish("登录成功")
 
 
-async def check_user(event: Union[PrivateMessageEventV11, PrivateMessageEventV12]):
-    if await DB.get_user(str(event.user_id)) is not None:
-        await login.finish("您已登录,如需更换账号请先注销")
-
-
 @login.handle()
 async def _(event: Union[PrivateMessageEventV11, PrivateMessageEventV12]):
-    await check_user(event)
+    if await user_login_status(str(event.user_id)) is not None:
+        await login.finish("您已登录,如需更换账号请先注销")
 
 
 @login.got("username", prompt="请输入您的Riot用户名")

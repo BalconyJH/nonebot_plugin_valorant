@@ -1,6 +1,6 @@
 from importlib.metadata import version
 
-from nonebot_plugin_valorant.utils.reqlib.request_res import get_request_json, base_url
+from nonebot_plugin_valorant.utils.reqlib.request_res import base_url, get_request_json
 
 
 async def get_client_version() -> str:
@@ -12,6 +12,7 @@ async def get_client_version() -> str:
     """
     data = await get_request_json(url=base_url, sub_url="version")
     return f"{data['data']['branch']}-shipping-{data['data']['buildVersion']}-{data['data']['version'].split('.')[3]}"
+
 
 async def get_version_data() -> dict:
     data = await get_request_json(url=base_url, sub_url="version")
@@ -43,7 +44,7 @@ async def get_manifest_id() -> str:
 
 
 async def get_bot_version() -> str:
-    return version('nonebot_plugin_valorant')
+    return version("nonebot_plugin_valorant")
 
 
 async def get_version() -> dict:

@@ -73,11 +73,3 @@ class DatabaseError(TranslatableError):
     """
 
     pass
-
-
-class ParameterTypeError(TranslatableError):
-    """
-    当参数类型错误时引发的异常。
-    """
-
-    pass

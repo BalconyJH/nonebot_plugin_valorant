@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
 
-from nonebot_plugin_valorant.config import plugin_config
 from nonebot.log import logger
+
+from nonebot_plugin_valorant.config import plugin_config
 
 TRANSLATIONS_PATH = (
     Path(__file__).parent.parent

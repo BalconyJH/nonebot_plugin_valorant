@@ -3,10 +3,11 @@ import asyncio
 from nonebot import get_driver
 from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
-from .config import plugin_config
 
 from nonebot_plugin_valorant.config import Config
 from nonebot_plugin_valorant.utils import on_startup
+
+from .config import plugin_config
 
 driver = get_driver()
 

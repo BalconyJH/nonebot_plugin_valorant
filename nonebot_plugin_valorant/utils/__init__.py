@@ -1,19 +1,21 @@
 import asyncio
+from uuid import UUID
 
 import aiohttp
-from cryptography.fernet import Fernet
-from nonebot import on_command as _on_command, require
+from nonebot import require
 from nonebot.log import logger
+from cryptography.fernet import Fernet
+from nonebot import on_command as _on_command
 
 from nonebot_plugin_valorant.config import plugin_config
-from .cache import cache_store, init_cache
-from .errors import AuthenticationError, DatabaseError
+
 from ..database import DB
 from ..database.db import engine
+from .cache import init_cache, cache_store
+from .errors import DatabaseError, AuthenticationError
 
-
-def on_command(cmd, *args, **kwargs):
-    return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
+# def on_command(cmd, *args, **kwargs):
+#     return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
 
 
 async def check_proxy():
@@ -33,14 +35,21 @@ async def check_proxy():
 
 
 async def check_db():
-    """检查数据库是否有效"""
-    try:
-        await DB.init()
-        engine.connect()
-    except Exception as e:
-        raise DatabaseError(f"数据库无效，请检查数据库{e}") from e
-    engine.dispose()  # 关闭数据库连接
-    logger.info("数据库连接成功")
+    if isinstance(plugin_config.valorant_database, str):
+        try:
+            engine.connect()
+            print(await DB.get_version())
+            if await DB.initial_value("initial") is None:
+                await DB.init()
+                # await DB.update_version(initial=True)
+                await init_cache()
+        except ConnectionError:
+            await DB.init()
+            # await DB.update_version(initial=True)
+            await init_cache()
+        engine.dispose()  # 关闭数据库连接
+    else:
+        raise DatabaseError("数据库无效，请检查数据库")
 
 
 async def generate_database_key(
@@ -79,13 +88,42 @@ async def generate_database_key(
             logger.info("数据库密钥获取成功")
 
 
+async def verify_uuid_legal(uuid: str):
+    """
+    Verify if the given UUID is legal.
+
+    Args:
+        uuid (str): The UUID to be verified.
+
+    Returns:
+        int: The version number of the UUID.
+
+    Raises:
+        ValueError: If the UUID is not in a valid format.
+    """
+    try:
+        uuid_obj = UUID(uuid)
+        return uuid_obj.version
+    except ValueError:
+        raise
+
+
+# async def cache_image_resources():
+
 
 async def on_startup():
     """启动前检查"""
-    await asyncio.gather(
-        check_proxy(), check_db(), init_cache(), generate_database_key()
-    )
+    await asyncio.gather(check_proxy(), check_db(), generate_database_key())
 
 
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler  # noqa
+
+
+async def user_login_status(
+    qq_uid: str,
+):
+    if await DB.get_user(qq_uid) is None:
+        return False
+    else:
+        return True
