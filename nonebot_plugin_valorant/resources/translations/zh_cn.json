@@ -175,6 +175,10 @@
     "API": {
       "FAILED_ACTIVE": "初始化 API 失败",
       "REQUEST_FAILED": "API 响应失败！"
+    },
+    "DATA": {
+      "NO_DATA": "没有数据",
+      "PARSING_ERROR": "解析数据时发生错误"
     }
   }
 }
