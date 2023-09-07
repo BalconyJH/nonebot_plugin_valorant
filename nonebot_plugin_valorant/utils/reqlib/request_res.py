@@ -1,14 +1,14 @@
 import json
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
+import httpx
 import aiohttp
 from nonebot import logger
-from typing_extensions import LiteralString
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.database.db import calculate_hash
-from nonebot_plugin_valorant.utils.errors import ResponseError, DataParseError
 from nonebot_plugin_valorant.utils.translator import Translator
+from nonebot_plugin_valorant.utils.errors import ResponseError, DataParseError
 
 # ------------------- #
 # credit https://github.com/colinhartigan/
@@ -70,8 +70,88 @@ points = {
 error_constructor = Translator()
 
 
-def get_item_type(uuid: LiteralString) -> Optional[str]:
-    """Get item type"""
+def get_request_json_sync(
+    url: str,
+    headers: Optional[dict],
+    proxy: Optional[str] = plugin_config.valorant_proxies,
+    sub_url: Optional[str] = "",
+) -> dict:
+    """使用 httpx 发送同步 GET 请求并获取 JSON 数据。
+
+    Args:
+        url (str): 要获取数据的 URL。
+        headers (dict, optional): 请求的头部信息。默认为 None。
+        proxies (dict, optional): 可选参数，代理配置项。默认为 None。
+        sub_url (str, optional): 要获取数据的子 URL。默认为 ""。
+
+    Returns:
+        dict: 如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据，否则返回 None。
+    """
+    url = f"{url}{sub_url}"
+    proxies = {"http://": proxy, "https://": proxy}
+    with httpx.Client() as client:
+        try:
+            response = client.get(url, headers=headers, proxies=proxies)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise ResponseError("errors.API.REQUEST_FAILED")
+        except httpx.RequestError as error:
+            raise ResponseError("API.REQUEST_FAILED") from error
+
+
+def put_request_json_sync(
+    url: str,
+    data: [dict, list] = None,
+    headers: Optional[dict] = None,
+    proxy: Optional[str] = plugin_config.valorant_proxies,
+) -> dict:
+    """使用 httpx 发送 PUT 请求并获取 JSON 数据。
+
+    Args:
+        url (str): 要发送请求的 URL。
+        data (dict, list, optional): 发送到 API 的数据。默认为 None。
+        headers (dict, optional): 请求的头部信息。默认为 None。
+        proxies (dict, optional): 可选参数，代理配置项。默认为 None。
+
+    Returns:
+        dict: 返回 API 的响应结果，如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据。
+
+    Raises:
+        ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
+    """
+    data = data if data is not None else {}
+    proxies = {"http://": proxy, "https://": proxy}
+
+    with httpx.Client() as client:
+        try:
+            response = client.put(url, proxies, headers=headers, json=data)
+            response = response.json()
+            if response is not None:
+                return response
+            else:
+                raise ResponseError("errors.API.REQUEST_FAILED")
+        except httpx.RequestError as error:
+            raise ResponseError("errors.API.REQUEST_FAILED") from error
+
+
+def get_item_type(uuid: str) -> Optional[str]:
+    """
+    获取项目类型。
+
+    Args:
+        uuid (str): 项目的唯一标识符。
+
+    Returns:
+        Optional[str]: 如果找到匹配的项目类型，则返回项目类型的字符串，否则返回 None。
+
+    Examples:
+        >>> get_item_type("01bb38e1-da47-4e6a-9b3d-945fe4655707")
+        'Agents'
+
+        >>> get_item_type("invalid_uuid")
+        None
+    """
     item_type = {
         "01bb38e1-da47-4e6a-9b3d-945fe4655707": "Agents",
         "f85cb6f7-33e5-4dc8-b609-ec7212301948": "Contracts",
@@ -88,10 +168,10 @@ def get_item_type(uuid: LiteralString) -> Optional[str]:
 async def url_to_image(url) -> Optional[bytes]:
     """从指定的URL获取图片并返回其字节。
     Args:
-    url: 要获取图片的URL。
+        url: 要获取图片的URL。
 
     Returns:
-    获取到的图片的字节，如果发生错误则返回None。
+        获取到的图片的字节，如果发生错误则返回 None。
     """
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -102,7 +182,7 @@ async def url_to_image(url) -> Optional[bytes]:
 async def get_request_json(
     url: str,
     headers: Dict = None,
-    proxy: object = plugin_config.valorant_proxies,
+    proxy: str = plugin_config.valorant_proxies,
     sub_url: Optional[str] = "",
 ) -> Dict:
     """使用 aiohttp 发送 GET 请求并获取 JSON 数据。
