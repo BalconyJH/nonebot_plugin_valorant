@@ -4,6 +4,7 @@ from typing import Union
 from nonebot import on_command
 from nonebot.params import T_State, ArgPlainText
 from nonebot_plugin_saa import Text, Image, MessageFactory
+from nonebot.adapters.onebot.v11 import PrivateMessageEvent as PrivateMessageEventV11
 from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEventV12
 
 from nonebot_plugin_valorant.database.db import DB
@@ -18,7 +19,7 @@ logout.__doc__ = """用户注销"""
 
 @logout.got("confirm", prompt="确定注销账户吗,确认请发送[是]或[yes]")
 async def _(
-    event: Union[PrivateMessageEventV12],
+    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
     state: T_State,
     confirm: str = ArgPlainText("confirm"),
 ):
