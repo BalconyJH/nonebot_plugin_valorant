@@ -72,26 +72,28 @@ error_constructor = Translator()
 
 def get_request_json_sync(
     url: str,
-    headers: Optional[dict],
-    proxy: Optional[str] = plugin_config.valorant_proxies,
-    sub_url: Optional[str] = "",
+    headers: dict = None,
+    proxy: str = plugin_config.valorant_proxies,
+    sub_url: str = "",
 ) -> dict:
     """使用 httpx 发送同步 GET 请求并获取 JSON 数据。
 
     Args:
         url (str): 要获取数据的 URL。
         headers (dict, optional): 请求的头部信息。默认为 None。
-        proxies (dict, optional): 可选参数，代理配置项。默认为 None。
+        proxy (dict, optional): 可选参数，代理配置项。默认为 None。
         sub_url (str, optional): 要获取数据的子 URL。默认为 ""。
 
     Returns:
-        dict: 如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据，否则返回 None。
+        dict: 如果成功获取到 JSON 数据，则返回字典类型的数据，否则返回 None。
     """
     url = f"{url}{sub_url}"
-    proxies = {"http://": proxy, "https://": proxy}
-    with httpx.Client() as client:
+    proxy = {"http://": proxy, "https://": proxy}
+    client = httpx.Client(proxies=proxy)
+
+    with client:
         try:
-            response = client.get(url, headers=headers, proxies=proxies)
+            response = client.get(url, headers=headers)
             if response.status_code == 200:
                 return response.json()
             else:
@@ -103,8 +105,8 @@ def get_request_json_sync(
 def put_request_json_sync(
     url: str,
     data: [dict, list] = None,
-    headers: Optional[dict] = None,
-    proxy: Optional[str] = plugin_config.valorant_proxies,
+    headers: dict = None,
+    proxy: str = plugin_config.valorant_proxies,
 ) -> dict:
     """使用 httpx 发送 PUT 请求并获取 JSON 数据。
 
@@ -112,20 +114,21 @@ def put_request_json_sync(
         url (str): 要发送请求的 URL。
         data (dict, list, optional): 发送到 API 的数据。默认为 None。
         headers (dict, optional): 请求的头部信息。默认为 None。
-        proxies (dict, optional): 可选参数，代理配置项。默认为 None。
+        proxy (dict, optional): 可选参数，代理配置项。默认为 None。
 
     Returns:
-        dict: 返回 API 的响应结果，如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据。
+        返回 API 的响应结果，如果成功获取到 JSON 数据，则返回 Python 字典类型的数据。
 
     Raises:
         ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
     """
     data = data if data is not None else {}
     proxies = {"http://": proxy, "https://": proxy}
+    client = httpx.Client(proxies=proxies)
 
-    with httpx.Client() as client:
+    with client:
         try:
-            response = client.put(url, proxies, headers=headers, json=data)
+            response = client.put(url, headers=headers, json=data)
             response = response.json()
             if response is not None:
                 return response
@@ -183,7 +186,7 @@ async def get_request_json(
     url: str,
     headers: Dict = None,
     proxy: str = plugin_config.valorant_proxies,
-    sub_url: Optional[str] = "",
+    sub_url: str = "",
 ) -> Dict:
     """使用 aiohttp 发送 GET 请求并获取 JSON 数据。
 
@@ -208,9 +211,9 @@ async def get_request_json(
 
 async def put_request_json(
     url: str,
-    data: [dict, list] = None,
-    headers: Dict = None,
-    proxy: object = plugin_config.valorant_proxies,
+    data: Optional[dict],
+    headers: Optional[dict],
+    proxy: Optional[str],
 ) -> Dict:
     """使用 aiohttp 发送 PUT 请求并获取 JSON 数据。
 
@@ -221,7 +224,7 @@ async def put_request_json(
         proxy: 可选参数，代理配置项。
 
     Returns:
-        返回 API 的响应结果，如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据。
+        返回 API 的响应结果，如果成功获取到 JSON 数据，则返回 Python 字典类型的数据。
 
     Raises:
         ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
