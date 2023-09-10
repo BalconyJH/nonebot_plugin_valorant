@@ -164,7 +164,8 @@
       "2FA_ENABLE": "您的账号启用了两步验证！",
       "2FA_TO_EMAIL": "Riot发送了一个代码",
       "2FA_INVALID_CODE": "2FA 验证码无效",
-      "TEMP_LOGIN_NOT_SUPPORT_2FA": "暂不支持的2FA登录"
+      "TEMP_LOGIN_NOT_SUPPORT_2FA": "暂不支持的2FA登录",
+      "BLOCKED": "请求遭到RIOT封禁"
     },
     "DATABASE": {
       "NOT_LOGIN": "您还没有登录！请使用`/login`登录！",
