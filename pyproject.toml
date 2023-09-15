@@ -9,16 +9,15 @@ dependencies = [
     "nonebot2[fastapi]>=2.0.1",
     "nonebot-plugin-apscheduler>=0.3.0",
     "nb-cli>=1.2.2",
-    "nonebot-plugin-sentry>=0.4.1",
     "nonebot-plugin-send-anything-anywhere>=0.3.0",
     "pymysql>=1.1.0",
-    "SQLAlchemy>=2.0.20",
+    "SQLAlchemy>=1.4.41",
     "sqlalchemy-utils>=0.41.1",
     "nonebot-adapter-onebot>=2.2.4",
     "cryptography>=41.0.3",
-    "nonebot-adapter-kaiheila>=0.2.8",
     "setuptools>=68.1.0",
     "nonebot-plugin-htmlrender>=0.2.1",
+    "aiohttp>=3.8.5",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -35,7 +34,7 @@ adapters = [
 ]
 plugins = ["nonebot_plugin_sentry"]
 plugin_dirs = ["nonebot_plugin_valorant/plugins"]
-builtin_plugins = ["echo"]
+builtin_plugins = []
 [tool.pdm.dev-dependencies]
 dev = [
     "nonebot-plugin-htmlrender>=0.2.1",
@@ -45,6 +44,8 @@ dev = [
     "flake8>=6.1.0",
     "nonebug>=0.3.5",
     "pytest-asyncio>=0.21.1",
+    "sqlmodel>=0.0.8",
+    "nonebot-plugin-sentry>=0.4.1",
 ]
 
 [tool.black]
