@@ -1,25 +1,30 @@
-import json
 import re
 import ssl
+import json
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, Any, Dict, Type
+from urllib.parse import parse_qs, urlparse
+from typing import Any, Dict, Tuple, Optional
 
 import aiohttp as aiohttp
 import urllib3.exceptions
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.utils.errors import AuthenticationError
-from nonebot_plugin_valorant.utils.translator import Translator
+from nonebot_plugin_valorant.utils import message_translator
+from nonebot_plugin_valorant.utils.reqlib.player_info import PlayerInfo
+from nonebot_plugin_valorant.utils.errors import (
+    ResponseError,
+    DataParseError,
+    AuthenticationError,
+)
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-message_translator = Translator().get_local_translation
 
 PROXY = plugin_config.valorant_proxies
 
 
-class Token(BaseModel):
+class AuthCredentials(BaseModel):
     """
     A class representing authentication token for Valorant API.
 
@@ -29,22 +34,13 @@ class Token(BaseModel):
         expires_in (str): The duration in seconds for the token to expire.
         entitlements_token (str): The token for accessing entitlements.
 
-    Raises:
-        ValueError: If any of the required parameters is empty.
-
     """
 
-    access_token: Optional[str]
-    token_id: Optional[str]
-    expires_in: Optional[str]
-    entitlements_token: Optional[str]
-
-    # noinspection PyMethodParameters
-    @validator("access_token", "token_id", "expires_in", "entitlements_token")
-    def check_token(cls, param):
-        if param is None:
-            raise ValueError(f"Param:{param} is empty")
-        return param
+    access_token: Optional[str] = None
+    token_id: Optional[str] = None
+    expires_in: Optional[str] = None
+    entitlements_token: Optional[str] = None
+    cookie: Optional[Dict] = None
 
 
 # https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites/
@@ -106,17 +102,17 @@ class Auth:
     )
     AUTH_URL = "https://auth.riotgames.com/api/v1/authorization"
 
-
     def __init__(self) -> None:
-        self._headers: Dict[str, str] = {
+        self.headers: Dict[str, str] = {
             "Content-Type": "application/json",
             "User-Agent": Auth.RIOT_CLIENT_USER_AGENT,
             "Accept": "application/json, text/plain, */*",
         }
         self.user_agent: str = Auth.RIOT_CLIENT_USER_AGENT
+        self.locale_code = "en-US"  # default language
 
     @staticmethod
-    def _extract_tokens(data: Dict[str, Any]) -> Type[Token]:
+    def _extract_tokens_from_response(data: Dict[str, Any]) -> set[str | Any]:
         """
         Extract tokens from data
 
@@ -127,25 +123,26 @@ class Auth:
             Tuple[str, str, str]: A tuple containing access_token, token_id, and expires_in
 
         """
-        pattern = re.compile(
-            "access_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
-            "id_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
-            "expires_in=(\d*)"
-        )
-        Token.access_token, Token.token_id, Token.expires_in = pattern.findall(
-            data["response"]["parameters"]["uri"]
-        )[0]
-
-        # 创建并返回Token对象
-        return Token
+        try:
+            uri = data["response"]["parameters"]["uri"]
+            pattern = re.compile(
+                "access_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
+                "id_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
+                "expires_in=(\d*)"
+            )
+            if match := pattern.search(uri):
+                access_token, token_id, expires_in = match.groups()
+                return {access_token, token_id, expires_in}
+        except (IndexError, ValueError) as error:
+            raise DataParseError("errors.DATA.PARSING_ERROR") from error
 
     @staticmethod
-    async def _extract_tokens_from_uri(url: str) -> Type[Token]:
+    def _extract_tokens_from_uri(uri: str) -> tuple[str, str]:
         """
         Extracts access token and ID token from a URL
 
         Args:
-            url (str): A URL string containing access token and ID token
+            uri (str): A URL string containing access token and ID token
 
         Returns:
             tuple: A tuple containing access token and ID token
@@ -155,10 +152,10 @@ class Auth:
 
         """
         try:
-            Token.access_token = url.split("access_token=")[1].split("&scope")[0]
-            Token.token_id = url.split("id_token=")[1].split("&")[0]
+            access_token = uri.split("access_token=")[1].split("&scope")[0]
+            token_id = uri.split("id_token=")[1].split("&")[0]
 
-            return Token
+            return access_token, token_id
         except IndexError as error:
             raise IndexError("Invalid uri") from error
 
@@ -194,12 +191,14 @@ class Auth:
         response = await session.post(
             self.AUTH_URL,
             json=data,
-            headers=self._headers,
+            headers=self.headers,
             proxy=PROXY,
         )
 
         # 准备授权请求的 cookies。
         cookies = {"cookie": {}}
+        if response.status == 403:
+            raise AuthenticationError(message_translator("errors.AUTH.BLOCKED"))
         for cookie in response.cookies.items():
             cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
@@ -215,12 +214,11 @@ class Auth:
         async with session.put(
             self.AUTH_URL,
             json=data,
-            headers=self._headers,
+            headers=self.headers,
             cookies=cookies["cookie"],
             proxy=PROXY,
         ) as response:
             data = await response.json()
-            print(data)
             for cookie in response.cookies.items():
                 cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
@@ -232,9 +230,7 @@ class Auth:
         # 处理身份验证响应。
         if data["type"] == "response":
             # 如果身份验证成功，则从响应中提取令牌。
-            response = self._extract_tokens(data)
-            access_token = response.access_token
-            token_id = response.token_id
+            access_token, token_id, _ = self._extract_tokens_from_response(data)
 
             # 设置令牌的到期时间。
             expiry_token = datetime.now() + timedelta(minutes=59)
@@ -250,8 +246,9 @@ class Auth:
                 },
             }
         elif data["type"] == "multifactor":
+            # 2FA 验证流程。
             if response.status == 429:
-                # 如果用户发送了太多请求，请引发 AuthenticationError。
+                # 短时间内大量重试触发RATELIMIT
                 raise AuthenticationError(message_translator("errors.AUTH.RATELIMIT"))
 
             method = data["multifactor"]["method"]
@@ -295,22 +292,23 @@ class Auth:
             "Authorization": f"Bearer {access_token}",
         }
 
-        async with session.post(
-            "https://entitlements.auth.riotgames.com/api/token/v1",
-            headers=headers,
-            json={},
-        ) as r:
-            data = await r.json()
+        try:
+            async with session.post(
+                "https://entitlements.auth.riotgames.com/api/token/v1",
+                headers=headers,
+                json={},
+            ) as r:
+                data = await r.json()
+        except aiohttp.ClientResponseError as e:
+            raise ResponseError(message_translator("errors.API.REQUEST_FAILED")) from e
 
         await session.close()
         try:
-            entitlements_token = data["entitlements_token"]
+            return data["entitlements_token"]
         except KeyError as e:
             raise AuthenticationError(
-                message_translator("errors.AUTH.COOKIES_EXPIRED")
+                message_translator("errors.DATA.PARSING_ERROR")
             ) from e
-        else:
-            return entitlements_token
 
     @staticmethod
     async def get_userinfo(access_token: str) -> Tuple[str, str, str]:
@@ -344,10 +342,10 @@ class Auth:
             puuid = data["sub"]
             name = data["acct"]["game_name"]
             tag = data["acct"]["tag_line"]
-        except KeyError:
+        except KeyError as e:
             raise AuthenticationError(
                 message_translator("errors.AUTH.NO_NAME_TAG")
-            )
+            ) from e
         else:
             return puuid, name, tag
 
@@ -386,10 +384,10 @@ class Auth:
 
         try:
             region = data["affinities"]["live"]
-        except KeyError:
+        except KeyError as e:
             raise AuthenticationError(
                 message_translator("errors.AUTH.UNSUPPORTED_REGION")
-            )
+            ) from e
         else:
             return region
 
@@ -415,7 +413,7 @@ class Auth:
         # 发送输入 2FA 验证码请求。
         async with session.put(
             self.AUTH_URL,
-            headers=self._headers,
+            headers=self.headers,
             json=data,
             cookies=cookies["cookie"],
         ) as r:
@@ -431,21 +429,19 @@ class Auth:
                 cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
             uri = data["response"]["parameters"]["uri"]
-            extract_tokens = await self._extract_tokens_from_uri(uri)
+            access_token, token_id = self._extract_tokens_from_uri(uri)
 
             return {
                 "auth": "response",
                 "data": {
                     "cookie": cookies,
-                    "access_token": extract_tokens.access_token,
-                    "token_id": extract_tokens.token_id,
+                    "access_token": access_token,
+                    "token_id": token_id,
                 },
             }
-        raise AuthenticationError(
-            message_translator("errors.AUTH.2FA_INVALID_CODE")
-        )
+        raise AuthenticationError(message_translator("errors.AUTH.2FA_INVALID_CODE"))
 
-    async def redeem_cookies(self, cookies: Dict) -> dict[str, str | None | dict[str, dict[Any, Any]]]:
+    async def redeem_cookies(self, cookies: Dict) -> AuthCredentials:
         """
         该函数用于兑换 cookies。
 
@@ -453,7 +449,6 @@ class Auth:
             cookies: 包含 cookies 的字典。
 
         Returns:
-            一个元组，包含兑换后的 cookies，access token 和 entitlements token。
 
         Raises:
             如果 cookies 过期则会抛出 AuthenticationError。
@@ -497,14 +492,15 @@ class Auth:
 
         await session.close()
 
-        extract_tokens = await self._extract_tokens_from_uri(data)
-        entitlements_token = await self.get_entitlements_token(extract_tokens.access_token)
+        access_token, token_id = self._extract_tokens_from_uri(data)
+        entitlements_token = await self.get_entitlements_token(access_token)
 
-        return {
-            "cookies": new_cookies,
-            "access_token": extract_tokens.access_token,
-            "entitlements_token": entitlements_token,
-        }
+        return AuthCredentials(
+            access_token=access_token,
+            token_id=token_id,
+            entitlements_token=entitlements_token,
+            cookie=new_cookies,
+        )
 
     async def temp_auth(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """
@@ -525,7 +521,7 @@ class Auth:
             token_id = authenticate["data"]["token_id"]
 
             entitlements_token = await self.get_entitlements_token(access_token)
-            puuid, name, tag = await self.get_userinfo(access_token)
+            puuid, name, tag = await PlayerInfo.get_userinfo(access_token)
             region = await self.get_region(access_token, token_id)
             player_name = f"{name}#{tag}" if tag and name else "no_username"
 
@@ -544,7 +540,7 @@ class Auth:
             message_translator("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
         )
 
-    async def login_with_cookie(self, cookies: Dict) -> Dict[str, Any]:
+    async def login_with_cookie(self, cookies: Dict) -> AuthCredentials:
         """
         使用 Cookie 进行登录并返回包含访问令牌、令牌 ID 和资格令牌的字典。
 
@@ -564,7 +560,7 @@ class Auth:
         )
 
         # 将 Cookie 加入请求头
-        self._headers["cookie"] = cookie_payload
+        self.headers["cookie"] = cookie_payload
 
         session = ClientSession()
 
@@ -577,11 +573,11 @@ class Auth:
             "&scope=account%20openid"
             "&nonce=1",
             allow_redirects=False,
-            headers=self._headers,
+            headers=self.headers,
         )
 
         # 删除请求头中的 Cookie
-        self._headers.pop("cookie")
+        self.headers.pop("cookie")
 
         # 如果请求返回的状态码不是 303，则登录失败
         if r.status != 303:
@@ -595,36 +591,32 @@ class Auth:
             new_cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         # 从响应 URI 中提取访问令牌和令牌 ID
-        access_token, token_id = await self._extract_tokens_from_uri(await r.text())
+        access_token, token_id = self._extract_tokens_from_uri(await r.text())
 
         # 获取资格令牌
         entitlements_token = await self.get_entitlements_token(access_token)
 
-        return {
-            "cookies": new_cookies,
-            "AccessToken": access_token,
-            "token_id": token_id,
-            "emt": entitlements_token,
-        }
+        return AuthCredentials(
+            access_token=access_token,
+            token_id=token_id,
+            entitlements_token=entitlements_token,
+            cookie=new_cookies,
+        )
 
-    async def refresh_token(
-        self, cookies: Dict
-    ) -> Tuple[Tuple[str, Dict], Tuple[str, Dict], Tuple[str, Dict]]:
+    async def refresh_token(self, cookies: Dict) -> AuthCredentials:
         """刷新访问令牌、权限令牌和Cookie。
 
         参数:
             cookies (Dict): 包含Cookie信息的字典。
-
-        返回:
-            Tuple[Tuple[str, Dict], Tuple[str, Dict], Tuple[str, Dict]]: 包含三个元组的元组。
-                第一个元组包含访问令牌作为第一个元素，字典作为第二个元素。
-                第二个元组包含权限令牌作为第一个元素，字典作为第二个元素。
-                第三个元组包含Cookie作为第一个元素，字典作为第二个元素。
         """
 
         data = await self.redeem_cookies(cookies)
-        access_token = data["access_token"]
-        entitlements_token = data["entitlements_token"]
-        cookies = data["cookies"]
+        access_token = data.access_token
+        entitlements_token = data.entitlements_token
+        new_cookies = data.cookie
 
-        return access_token, entitlements_token, cookies
+        return AuthCredentials(
+            access_token=access_token,
+            entitlements_token=entitlements_token,
+            cookie=new_cookies,
+        )
