@@ -61,7 +61,7 @@ async def check_db():
             else:
                 await init_cache()
 
-    except ConnectionError:
+    except (ConnectionError, ProgrammingError):
         await DB.init()
         await init_cache()
     # except Exception as e:
