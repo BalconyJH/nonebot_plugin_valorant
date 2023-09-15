@@ -9,17 +9,22 @@ from nonebot import require
 from nonebot.log import logger
 from cryptography.fernet import Fernet
 from nonebot import on_command as _on_command
+from sqlalchemy.exc import SQLAlchemyError, ProgrammingError
 
 from nonebot_plugin_valorant.config import plugin_config
 
 from ..database import DB
 from ..database.db import engine
+from .translator import Translator
 from .reqlib.client import get_version
 from .errors import DatabaseError, AuthenticationError
 from .cache import init_cache, cache_store, cache_version
 
 # def on_command(cmd, *args, **kwargs):
 #     return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
+
+# 全局实例化翻译组件
+message_translator = Translator().get_local_translation
 
 
 async def check_proxy():
@@ -147,5 +152,4 @@ async def user_login_status(
     qq_uid: str,
 ):
     data = await DB.get_user(qq_uid)
-    print(data)
     return data is not None
