@@ -1,15 +1,23 @@
-from sqlalchemy import JSON, Text, Column, String, Boolean, DateTime, func
-
 # from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import (
-    Mapped,
-    Session,
-    relationship,
-    mapped_column,
-    declarative_base,
+from sqlalchemy.orm import Mapped, Session, relationship, declarative_base
+from sqlalchemy import (
+    JSON,
+    VARCHAR,
+    Text,
+    Float,
+    Table,
+    Column,
+    Boolean,
+    DateTime,
+    func,
+    select,
 )
 
 Base = declarative_base()
+
+# association_table = Table(
+#     ""
+# )
 
 
 class BaseModel(Base):
@@ -66,16 +74,16 @@ class BaseModel(Base):
     @classmethod
     async def delete(cls, session: Session, **kwargs) -> bool:
         query = await cls.get(session, **kwargs)
-        if query.count():
-            query.delete()
+        if query.first() is not None:
+            session.delete(query.first())
             session.commit()
             return True
         return False
 
     @classmethod
-    async def update(cls, q, **kwargs) -> bool:
-        query = await cls.get(**q)
-        if await query.exists():
+    async def update(cls, session: Session, **kwargs) -> bool:
+        query = await cls.get(session)
+        if query is not None:
             query.update(**kwargs)
             return True
         return False
@@ -95,18 +103,18 @@ class UserShop(BaseModel):
 
     __tablename__ = "user_shop"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    bonus_store: Mapped["BonusStore"] = relationship(
+    uuid = Column(VARCHAR(255), primary_key=True)
+    bonus_store: relationship(
         "BonusStore",
         backref="user_shop",
         primaryjoin="UserShop.uuid == foreign(BonusStore.uuid)",
     )
-    skins_store: Mapped["SkinsStore"] = relationship(
+    skins_store: relationship(
         "SkinsStore",
         backref="user_shop",
         primaryjoin="UserShop.uuid == foreign(SkinsStore.uuid)",
     )
-    accessory_store: Mapped["AccessoryStore"] = relationship(
+    accessory_store: relationship(
         "AccessoryStore",
         backref="user_shop",
         primaryjoin="UserShop.uuid == foreign(AccessoryStore.uuid)",
@@ -136,11 +144,11 @@ class AccessoryStore(BaseModel):
 
     __tablename__ = "accessory_store"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    offer_id: Mapped[str] = mapped_column(String(255))
-    cost_type: Mapped[str] = mapped_column(String(255))
-    cost: Mapped[str] = mapped_column(String(255))
-    remaining_duration: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    offer_id: Mapped[str] = Column(VARCHAR(255))
+    cost_type: Mapped[str] = Column(VARCHAR(255))
+    cost: Mapped[str] = Column(VARCHAR(255))
+    remaining_duration: Mapped[str] = Column(VARCHAR(255))
 
 
 class SkinsStore(BaseModel):
@@ -157,11 +165,11 @@ class SkinsStore(BaseModel):
 
     __tablename__ = "skins_store"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    offer_id_1: Mapped[str] = mapped_column(String(255))
-    offer_id_2: Mapped[str] = mapped_column(String(255))
-    offer_id_3: Mapped[str] = mapped_column(String(255))
-    offer_id_4: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    offer_id_1: Mapped[str] = Column(VARCHAR(255))
+    offer_id_2: Mapped[str] = Column(VARCHAR(255))
+    offer_id_3: Mapped[str] = Column(VARCHAR(255))
+    offer_id_4: Mapped[str] = Column(VARCHAR(255))
 
 
 class BonusStore(BaseModel):
@@ -181,13 +189,13 @@ class BonusStore(BaseModel):
 
     __tablename__ = "bonus_store"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    offer_id: Mapped[str] = mapped_column(String(255))
-    cost_type: Mapped[str] = mapped_column(String(255))
-    cost: Mapped[str] = mapped_column(String(255))
-    discount: Mapped[str] = mapped_column(String(255))
-    discount_cost: Mapped[str] = mapped_column(String(255))
-    remaining_duration: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    offer_id: Mapped[str] = Column(VARCHAR(255))
+    cost_type: Mapped[str] = Column(VARCHAR(255))
+    cost: Mapped[str] = Column(VARCHAR(255))
+    discount: Mapped[str] = Column(VARCHAR(255))
+    discount_cost: Mapped[str] = Column(VARCHAR(255))
+    remaining_duration: Mapped[str] = Column(VARCHAR(255))
 
 
 class User(BaseModel):
@@ -195,28 +203,30 @@ class User(BaseModel):
     This model represents a user and contains various information about the user, such as unique identifier, cookie, access token, etc.
 
     Attributes:
-        puuid (str): The unique identifier of the user.
-        cookie (JSON): The user's cookie.
-        access_token (Text): The user's access token.
-        token_id (Text): The user's token id.
-        emt (Text): The user's entitlements_token.
-        username (str): The user's username.
-        region (str): The region where the user is located.
-        qq_uid (int): The user's QQ uid.
-        timestamp (DateTime): The update time of the user's information.
+        qq_uid (str): The QQ UID of the user.
+        puuid (str): The PUUID of the user.
+        cookie (str): The cookie of the user.
+        access_token (str): The access token of the user.
+        token_id (str): The token ID of the user.
+        expiry_token (str): The expiry time of the token.
+        emt (str): The entitlements token of the user.
+        username (str): The username of the user.
+        region (str): The region of the user.
+        timestamp (str): The timestamp when the data was revised.
 
     """
 
     __tablename__ = "user"
 
-    puuid: Mapped[str] = mapped_column(String(255))
-    cookie: Mapped[JSON] = mapped_column(JSON)
-    access_token: Mapped[Text] = mapped_column(Text)
-    token_id: Mapped[Text] = mapped_column(Text)
-    emt: Mapped[Text] = mapped_column(Text)
-    username: Mapped[str] = mapped_column(String(255))
-    region: Mapped[str] = mapped_column(String(255))
-    qq_uid: Mapped[int] = mapped_column(String(30), nullable=False, primary_key=True)
+    qq_uid = Column(VARCHAR(30), nullable=False, primary_key=True)
+    puuid = Column(VARCHAR(255))
+    cookie = Column(JSON)
+    access_token = Column(VARCHAR(2000))
+    token_id = Column(VARCHAR(2000))
+    expiry_token = Column(Float)
+    emt = Column(VARCHAR(2000))
+    username = Column(VARCHAR(255))
+    region = Column(VARCHAR(255))
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
     def __repr__(self):
@@ -238,11 +248,11 @@ class WeaponSkin(BaseModel):
 
     __tablename__ = "weapon_skins"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    names: Mapped[JSON] = mapped_column(JSON)
-    icon: Mapped[str] = mapped_column(String(255))
-    tier: Mapped[str] = mapped_column(String(255))
-    hash: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    names: Mapped[JSON] = Column(JSON)
+    icon: Mapped[str] = Column(VARCHAR(255))
+    tier: Mapped[str] = Column(VARCHAR(255))
+    hash: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
         return f"<WeaponSkin(uuid='{self.uuid}', names='{self.names}', icon='{self.icon}', tier='{self.tier}', hash='{self.hash}')>"
@@ -266,18 +276,18 @@ class Version(BaseModel):
 
     __tablename__ = "version"
 
-    manifestId: Mapped[str] = mapped_column(String(255), primary_key=True)
-    branch: Mapped[str] = mapped_column(String(255))
-    version: Mapped[str] = mapped_column(String(255))
-    buildVersion: Mapped[str] = mapped_column(String(255))
-    engineVersion: Mapped[str] = mapped_column(String(255))
-    riotClientVersion: Mapped[str] = mapped_column(String(255))
-    riotClientBuild: Mapped[str] = mapped_column(String(255))
-    buildDate: Mapped[str] = mapped_column(String(255))
-    initial: Mapped[str] = mapped_column(String(255))
+    manifestId = Column(VARCHAR(255), primary_key=True)
+    branch = Column(VARCHAR(255))
+    version = Column(VARCHAR(255))
+    buildVersion = Column(VARCHAR(255))
+    engineVersion = Column(VARCHAR(255))
+    riotClientVersion = Column(VARCHAR(255))
+    riotClientBuild = Column(VARCHAR(255))
+    buildDate = Column(VARCHAR(255))
+    initial = Column(Boolean, default=False)
 
     def __repr__(self):
-        return f"<Version(uuid='{self.uuid}', manifestId='{self.manifestId}', branch='{self.branch}', version='{self.version}', buildVersion='{self.buildVersion}', engineVersion='{self.engineVersion}', riotClientVersion='{self.riotClientVersion}', riotClientBuild='{self.riotClientBuild}', buildDate='{self.buildDate}')>"
+        return f"<Version('manifestId='{self.manifestId}', branch='{self.branch}', version='{self.version}', buildVersion='{self.buildVersion}', engineVersion='{self.engineVersion}', riotClientVersion='{self.riotClientVersion}', riotClientBuild='{self.riotClientBuild}', buildDate='{self.buildDate}', initial='{self.initial}')>"
 
 
 class Tier(BaseModel):
@@ -299,9 +309,9 @@ class Tier(BaseModel):
 
     __tablename__ = "tier"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    name: Mapped[int] = mapped_column(String(255))
-    icon: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    name: Mapped[str] = Column(VARCHAR(255))
+    icon: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
         return f"<Tier(uuid='{self.uuid}', name='{self.name}', icon='{self.icon}')>"
@@ -316,16 +326,16 @@ class Mission(BaseModel):
         titles (str): The titles associated with the mission.
         type (str): The type of the mission.
         progress (str): The progress of the mission.
-        xp (str): The experience points gained from the mission.
+        xp (str): The experience poInts gained from the mission.
     """
 
     __tablename__ = "mission"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    titles: Mapped[str] = mapped_column(String(255))
-    type: Mapped[str] = mapped_column(String(255))
-    progress: Mapped[str] = mapped_column(String(255))
-    xp: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    titles: Mapped[str] = Column(VARCHAR(255))
+    type: Mapped[str] = Column(VARCHAR(255))
+    progress: Mapped[str] = Column(VARCHAR(255))
+    xp: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
         return f"<Mission(uuid='{self.uuid}', titles='{self.titles}', type='{self.type}', progress='{self.progress}', xp='{self.xp}')>"
@@ -343,9 +353,9 @@ class Playercard(BaseModel):
 
     __tablename__ = "playercard"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    name: Mapped[str] = mapped_column(String(255))
-    icon: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    name: Mapped[str] = Column(VARCHAR(255))
+    icon: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
         return (
@@ -369,9 +379,9 @@ class Title(BaseModel):
 
     __tablename__ = "title"
 
-    uuid: Mapped[str] = mapped_column(String(255), primary_key=True)
-    name: Mapped[str] = mapped_column(String(255))
-    text: Mapped[str] = mapped_column(String(255))
+    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
+    name: Mapped[str] = Column(VARCHAR(255))
+    text: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
         return f"<Title(uuid='{self.uuid}', name='{self.name}', icon='{self.text}')>"
