@@ -73,3 +73,19 @@ class DatabaseError(TranslatableError):
     """
 
     pass
+
+
+class RequestError(TranslatableError):
+    """
+    请求 Riot 服务器时出现参数错误时引发的异常。
+    """
+
+    pass
+
+
+class ConfigurationError(TranslatableError):
+    """
+    当配置文件中的值无效时引发的异常。
+    """
+
+    pass
