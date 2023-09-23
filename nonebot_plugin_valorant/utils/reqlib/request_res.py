@@ -7,8 +7,11 @@ from nonebot import logger
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.database.db import calculate_hash
-from nonebot_plugin_valorant.utils.translator import Translator
-from nonebot_plugin_valorant.utils.errors import ResponseError, DataParseError
+from nonebot_plugin_valorant.utils.errors import (
+    RequestError,
+    ResponseError,
+    DataParseError,
+)
 
 # ------------------- #
 # credit https://github.com/colinhartigan/
@@ -67,12 +70,10 @@ points = {
     "RadianitePointIcon": "<:RadianitePoint:950365909636235324>",
 }
 
-error_constructor = Translator()
-
 
 def get_request_json_sync(
     url: str,
-    headers: dict = None,
+    headers=None,
     proxy: str = plugin_config.valorant_proxies,
     sub_url: str = "",
 ) -> dict:
@@ -87,8 +88,9 @@ def get_request_json_sync(
     Returns:
         dict: 如果成功获取到 JSON 数据，则返回字典类型的数据，否则返回 None。
     """
+    if headers is None:
+        headers = {}
     url = f"{url}{sub_url}"
-    proxy = {"http://": proxy, "https://": proxy}
     client = httpx.Client(proxies=proxy)
 
     with client:
@@ -104,8 +106,8 @@ def get_request_json_sync(
 
 def put_request_json_sync(
     url: str,
-    data: [dict, list] = None,
-    headers: dict = None,
+    data=None,
+    headers=None,
     proxy: str = plugin_config.valorant_proxies,
 ) -> dict:
     """使用 httpx 发送 PUT 请求并获取 JSON 数据。
@@ -122,9 +124,12 @@ def put_request_json_sync(
     Raises:
         ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
     """
+    if data is None:
+        data = {}
+    if headers is None:
+        headers = {}
     data = data if data is not None else {}
-    proxies = {"http://": proxy, "https://": proxy}
-    client = httpx.Client(proxies=proxies)
+    client = httpx.Client(proxies=proxy)
 
     with client:
         try:
@@ -199,21 +204,27 @@ async def get_request_json(
     Returns:
         如果成功获取到 JSON 数据，则返回一个 Python 字典类型的数据，否则返回 None。
     """
+    if headers is None:
+        headers = {}
     url = f"{url}{sub_url}"
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, proxy=proxy, headers=headers) as resp:
                 if resp.status == 200:
                     return await resp.json()
+                elif resp.status == 400:
+                    raise RequestError("errors.AUTH.COOKIES_EXPIRED")
+                else:
+                    return {}
     except aiohttp.ClientError as error:
-        raise ResponseError("API.REQUEST_FAILED") from error
+        raise ResponseError("errors.API.REQUEST_FAILED") from error
 
 
 async def put_request_json(
     url: str,
     data: Optional[dict],
     headers: Optional[dict],
-    proxy: Optional[str],
+    proxy: Optional[str] = plugin_config.valorant_proxies,
 ) -> Dict:
     """使用 aiohttp 发送 PUT 请求并获取 JSON 数据。
 
@@ -603,6 +614,8 @@ async def get_contract() -> Optional[Dict]:
             contracts = {}
             for contract in resp["data"]:
                 contract_info = parse_contract(contract)
+                if contract_info is None:
+                    continue
                 contracts[contract_info["uuid"]] = contract_info
             return contracts
     except Exception as e:
