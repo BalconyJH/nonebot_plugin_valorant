@@ -2,8 +2,11 @@ from typing import Any, Dict, Mapping, Optional
 
 import urllib3
 
+from nonebot_plugin_valorant.utils import message_translator
 from nonebot_plugin_valorant.utils.errors import HandshakeError
+from nonebot_plugin_valorant.utils.reqlib.auth import AuthCredentials
 from nonebot_plugin_valorant.utils.reqlib.client import get_client_version
+from nonebot_plugin_valorant.utils.reqlib.player_info import PlayerInformation
 from nonebot_plugin_valorant.utils.reqlib.request_res import (
     base_endpoint,
     get_request_json,
@@ -16,35 +19,55 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class EndpointAPI:
-    def __init__(self, auth: Mapping[str, Any]) -> None:
+    def __init__(self, player_info: PlayerInformation) -> None:
+        """
+        传入AuthCredentials初始化API
+        Args:
+            auth:
+        """
         from .auth import Auth
 
         self.auth = Auth()
-
-        try:
-            self.headers = self.__build_headers(auth["headers"])
-            self.puuid = auth["puuid"]
-            self.region = auth["region"]
-            self.player = auth["player_name"]
-            self.locale_code = auth.get("locale_code", "en-US")
-            self.__format_region()
-            self.__build_urls()
-        except Exception as e:
-            raise HandshakeError("errors.API.FAILED_ACTIVE") from e
-
-        # client platform
+        # client platform 神秘参数,我也不知道哪来的
         # noinspection SpellCheckingInspection
         self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
 
         # language
         self.locale_code = "en-US"
 
-    async def __build_headers(self, headers) -> Dict[str, Any]:
+        self.headers = self.__build_headers(self.auth.headers)
+        self.puuid = player_info.puuid
+        self.region = player_info.region
+        self.player_name = player_info.player_name
+        self.__format_region()
+        self.__build_urls()
+
+    def __build_headers(self, headers) -> Dict[str, Any]:
         """build headers"""
 
         headers["X-Riot-ClientPlatform"] = self.client_platform
-        headers["X-Riot-ClientVersion"] = await get_client_version()
+        headers["X-Riot-ClientVersion"] = get_client_version()
         return headers
+
+    def __format_region(self):
+        """
+        将地区格式化为符合要求的格式
+        """
+
+        region_shard_override = {
+            "latam": "na",
+            "br": "na",
+        }
+
+        shard_region_override = {"pbe": "na"}
+
+        self.shard = self.region
+
+        if self.region in region_shard_override:
+            self.shard = region_shard_override[self.region]
+
+        if self.shard in shard_region_override:
+            self.region = shard_region_override[self.shard]
 
     def __build_urls(self):
         """
@@ -66,29 +89,6 @@ class EndpointAPI:
         # 基于地区和分区构建URL
         self.glz = base_endpoint_glz.format(region=self.region, shard=self.shard)
 
-    def __format_region(self):
-        """
-        将地区格式化为符合要求的格式
-
-        Returns:
-            None
-        """
-
-        region_shard_override = {
-            "latam": "na",
-            "br": "na",
-        }
-
-        shard_region_override = {"pbe": "na"}
-
-        self.shard = self.region
-
-        if self.region in region_shard_override:
-            self.shard = region_shard_override[self.region]
-
-        if self.shard in shard_region_override:
-            self.region = shard_region_override[self.shard]
-
     async def fetch(self, api_path: str = "/", api_url: str = "pd") -> Dict:
         """
         从 API 获取数据。
@@ -105,7 +105,10 @@ class EndpointAPI:
         """
         api_endpoint = getattr(self, api_url)
 
-        return await get_request_json(f"{api_endpoint}{api_path}", headers=self.headers)
+        data = await get_request_json(f"{api_endpoint}{api_path}", headers=self.headers)
+
+        if data["status_code"] == 400:
+            raise HandshakeError("errors.AUTH.COOKIES_EXPIRED")
 
     async def put(
         self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None
@@ -151,13 +154,13 @@ class EndpointAPI:
         """
         return await self.fetch(f"/account-xp/v1/players/{self.puuid}", "pd")
 
-    async def fetch_player_mmr(self, puuid: str = None) -> Mapping[str, Any]:
-        puuid = self.__check_puuid(puuid)
+    async def fetch_player_mmr(self, puuid: str) -> Mapping[str, Any]:
+        puuid = await self.__check_puuid(puuid)
         return await self.fetch(f"/mmr/v1/players/{puuid}", "pd")
 
     # store endpoints
 
-    async def fetch_name_by_puuid(self, puuid: str = None) -> dict:
+    async def fetch_name_by_puuid(self, puuid: str) -> dict:
         """
         Name_service
         根据 PUUID 获取玩家的名字标签。
@@ -172,9 +175,9 @@ class EndpointAPI:
         响应结果的格式为 ['PUUID']。
         """
         if puuid is None:
-            puuid = [self.__check_puuid()]
+            puuid = await self.__check_puuid()
         elif isinstance(puuid, str):
-            puuid = [puuid]
+            puuid = puuid
         return await self.put(endpoint="/name-service/v2/players", url="pd", data=puuid)
 
     async def fetch_player_loadout(self) -> dict:
@@ -288,18 +291,18 @@ class EndpointAPI:
         data = await self.fetch_account_xp()
         return data["Progress"]["Level"]
 
-    async def get_player_tier_rank(self, puuid: str = None) -> str:
+    async def get_player_tier_rank(self, puuid: str) -> str:
         """
         get player current tier rank
         """
         data = await self.fetch_player_mmr(puuid)
         season_id = data["LatestCompetitiveUpdate"]["SeasonID"]
         if len(season_id) == 0:
-            season_id = self.__get_live_season()
+            season_id = await self.__get_live_season(puuid)
         current_season = data["QueueSkills"]["competitive"]["SeasonalInfoBySeasonID"]
         return current_season[season_id]["CompetitiveTier"]
 
-    async def __get_live_season(self) -> str:
+    async def __get_live_season(self, puuid: str) -> str:
         """Get the UUID of the live competitive season"""
         content = await self.fetch_content()
         season_id = [
@@ -310,7 +313,9 @@ class EndpointAPI:
         return (
             season_id[0]
             if season_id
-            else (await self.fetch_player_mmr())["LatestCompetitiveUpdate"]["SeasonID"]
+            else (await self.fetch_player_mmr(puuid))["LatestCompetitiveUpdate"][
+                "SeasonID"
+            ]
         )
 
     async def __check_puuid(self, puuid: Optional[str] = None) -> str:
