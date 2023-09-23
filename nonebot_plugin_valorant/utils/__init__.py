@@ -3,6 +3,7 @@ import asyncio
 from uuid import UUID
 from pathlib import Path
 from contextlib import suppress
+from urllib.parse import urlparse
 
 import aiohttp
 from nonebot import require
@@ -10,6 +11,7 @@ from nonebot.log import logger
 from cryptography.fernet import Fernet
 from nonebot import on_command as _on_command
 from sqlalchemy.exc import SQLAlchemyError, ProgrammingError
+from aiohttp.client_exceptions import InvalidURL, ClientConnectorError
 
 from nonebot_plugin_valorant.config import plugin_config
 
@@ -17,8 +19,13 @@ from ..database import DB
 from ..database.db import engine
 from .translator import Translator
 from .reqlib.client import get_version
-from .errors import DatabaseError, AuthenticationError
 from .cache import init_cache, cache_store, cache_version
+from .errors import (
+    DatabaseError,
+    ResponseError,
+    ConfigurationError,
+    AuthenticationError,
+)
 
 # def on_command(cmd, *args, **kwargs):
 #     return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
@@ -29,7 +36,8 @@ message_translator = Translator().get_local_translation
 
 async def check_proxy():
     """检查代理是否有效"""
-    if plugin_config.valorant_proxies:
+    if plugin_config.valorant_proxies is not None:
+        await _verify_url_legality(plugin_config.valorant_proxies)
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(
@@ -37,10 +45,9 @@ async def check_proxy():
                     proxy=plugin_config.valorant_proxies,
                     timeout=5,
                 ):
-                    pass
-            except Exception as e:
-                raise RuntimeError("代理无效，请检查代理") from e
-    logger.info("代理连接成功")
+                    logger.info("代理连接测试成功")
+            except ClientConnectorError as e:
+                logger.warning(f"代理连接错误: {e}")
 
 
 async def check_db():
@@ -49,15 +56,15 @@ async def check_db():
 
     try:
         with engine.connect():
-            data = await DB.get_version()
+            _cache = await DB.get_version()
 
-            if not hasattr(data, "initial"):
+            if not hasattr(_cache, "initial"):
                 logger.info("数据对象没有 'initial' 属性")
-            elif data.initial != "1":
-                if await verify_resource_timeliness() is True:
-                    logger.info("资源过期，已更新")
+            elif _cache.initial != "1":
+                if await _verify_resource_timeliness(_cache) is True:
+                    logger.info(f"资源值{_cache.manifestId}匹配")
                 else:
-                    logger.info("跳过缓存")
+                    logger.info("资源过期，已更新")
             else:
                 await init_cache()
 
@@ -108,7 +115,7 @@ async def generate_database_key():
             logger.info(f"新密钥生成并保存到文件 '{key_path}'")
 
 
-async def verify_uuid_legal(uuid: str):
+async def verify_uuid_legality(uuid: str):
     """
     Verify if the given UUID is legal.
 
@@ -125,15 +132,29 @@ async def verify_uuid_legal(uuid: str):
         uuid_obj = UUID(uuid)
         return uuid_obj.version
     except ValueError:
-        raise
+        return False
 
 
-async def verify_resource_timeliness():
-    _cache = await DB.get_version()
-    _data = await get_version()
-    if _cache.manifestId != _data["manifestId"]:
+async def _verify_url_legality(url: str):
+    if not url:
+        logger.warning("URL为空")
+    result = urlparse(url)
+    if not all([result.scheme, result.netloc]):
+        raise ConfigurationError("URL格式错误，请检查URL格式")
+
+
+async def _verify_resource_timeliness(_cache) -> bool:
+    try:
+        _data = await get_version()
+        if _cache.manifestId == _data["manifestId"]:
+            return True
         await cache_version()
-        return True
+        return False
+    except (ResponseError, SQLAlchemyError) as e:
+        if e is ResponseError:
+            logger.error(f"获取版本信息失败：{str(e)}")
+        elif e is SQLAlchemyError:
+            logger.error(f"数据库错误：{str(e)}")
 
 
 # async def cache_image_resources():
@@ -141,7 +162,10 @@ async def verify_resource_timeliness():
 
 async def on_startup():
     """启动前检查"""
-    await asyncio.gather(check_proxy(), check_db(), generate_database_key())
+    # await _verify_url_legality(plugin_config.valorant_proxies)
+    await check_proxy()
+    await check_db()
+    await generate_database_key()
 
 
 require("nonebot_plugin_apscheduler")
