@@ -18,6 +18,7 @@ dependencies = [
     "setuptools>=68.1.0",
     "nonebot-plugin-htmlrender>=0.2.1",
     "aiohttp>=3.8.5",
+    "pillow>=10.0.1",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -32,7 +33,7 @@ adapters = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" },
     { name = "OneBot V12", module_name = "nonebot.adapters.onebot.v12" },
 ]
-plugins = ["nonebot_plugin_sentry"]
+plugins = ["nonebot_plugin_sentry", "nonebot_plugin_htmlrender"]
 plugin_dirs = ["nonebot_plugin_valorant/plugins"]
 builtin_plugins = []
 [tool.pdm.dev-dependencies]
@@ -46,6 +47,7 @@ dev = [
     "pytest-asyncio>=0.21.1",
     "sqlmodel>=0.0.8",
     "nonebot-plugin-sentry>=0.4.1",
+    "nb-cli-plugin-webui>=0.1.1",
 ]
 
 [tool.black]
