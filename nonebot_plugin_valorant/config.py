@@ -1,13 +1,13 @@
-from typing import Union, List, Optional
+from typing import List, Union
 
 from nonebot import get_driver
-from pydantic import BaseSettings, Extra
+from pydantic import Extra, BaseSettings
 
 
 class Config(BaseSettings, extra=Extra.ignore):
     """
     This class represents the configuration settings for the application.
-    
+
     Attributes:
         valorant_database (str): The path to the Valorant database.
         valorant_database_key_path (str): The path to the key file for Valorant database encryption.
@@ -17,8 +17,9 @@ class Config(BaseSettings, extra=Extra.ignore):
         valorant_command (Union[str, List[str]]): The command or list of commands to trigger Valorant actions.
         language_type (str): The type of language to use in the application's responses.
     """
+
     valorant_database: str = ""
-    valorant_database_key_path: Optional[str] = ""
+    valorant_database_key_path: str = ""
     valorant_proxies: str = ""
     valorant_timeout: int
     valorant_to_me: bool = True
@@ -28,4 +29,3 @@ class Config(BaseSettings, extra=Extra.ignore):
 
 global_config = get_driver().config
 plugin_config = Config.parse_obj(global_config)
-
