@@ -1,4 +1,3 @@
-import json
 from typing import Any, Dict, Optional
 
 import httpx
@@ -271,7 +270,7 @@ def parse_skin(skin: Dict[str, Any]) -> Dict[str, Any]:
     skin_tier = skin["contentTierUuid"]
 
     return {
-        "uuid": json.dumps(skin_uuid),
+        "uuid": skin_uuid,
         "names": skin_names,
         "icon": skin_icon,
         "tier": skin_tier if skin_tier is not None else "None",
@@ -281,22 +280,16 @@ def parse_skin(skin: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_skin() -> Optional[Dict[str, Any]]:
+async def get_skin() -> Dict[str, Any]:
     """获取武器皮肤数据
 
     Returns:
         武器皮肤数据
     """
-    try:
-        resp = await get_request_json(
-            url=base_url, sub_url="weapons/skins?language=all"
-        )
-        if resp:
-            skin = resp.get("data", [])
-            return {parse_skin(skin)["uuid"]: parse_skin(skin) for skin in skin}
-    except Exception as e:
-        print(f"获取武器皮肤信息时发生错误：{e}")
-    return None
+    resp = await get_request_json(url=base_url, sub_url="weapons/skins?language=all")
+    if resp:
+        skin = resp.get("data", [])
+        return {parse_skin(skin)["uuid"]: parse_skin(skin) for skin in skin}
 
 
 def parse_tier(tier: Dict[str, Any]) -> Dict[str, Any]:
