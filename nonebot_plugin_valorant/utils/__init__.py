@@ -18,7 +18,7 @@ from nonebot_plugin_valorant.config import plugin_config
 from ..database import DB
 from ..database.db import engine
 from .translator import Translator
-from .reqlib.client import get_version
+from .requestlib.client import get_version
 from .cache import init_cache, cache_store, cache_version
 from .errors import (
     DatabaseError,
@@ -50,31 +50,69 @@ async def check_proxy():
                 logger.warning(f"代理连接错误: {e}")
 
 
-async def check_db():
+async def _check_database_validity() -> None:
+    """检查数据库是否有效。
+
+    本函数将检查数据库是否有效，如果无效则会抛出 DatabaseError 异常。
+
+    返回:
+        无返回值。
+
+    异常:
+        如果数据库无效，则会抛出 DatabaseError 异常。
+
+    用法:
+        ```python
+        await _check_database_validity()
+        ```
+    """
     if not isinstance(plugin_config.valorant_database, str):
         raise DatabaseError("数据库无效，请检查数据库")
 
-    try:
-        with engine.connect():
-            _cache = await DB.get_version()
 
-            if not hasattr(_cache, "initial"):
-                logger.info("数据对象没有 'initial' 属性")
-            elif _cache.initial != "1":
-                if await _verify_resource_timeliness(_cache) is True:
-                    logger.info(f"资源值{_cache.manifestId}匹配")
-                else:
-                    logger.info("资源过期，已更新")
-            else:
-                await init_cache()
+async def _verify_db_resource(_cache) -> None:
+    """异步初始化数据库或验证资源时效性。
 
-    except (ConnectionError, ProgrammingError):
+    本函数根据传入的 _cache 对象的 'initial' 属性来执行相应操作。
+
+    返回:
+        无返回值。
+
+    异常:
+        本函数可能会抛出与数据库连接和初始化相关的异常。
+
+    用法:
+        ```python
+        await initialize_or_verify_db_resource(_cache)
+        ```
+    """
+    if not hasattr(_cache, "initial") or _cache.initial is False:
         await DB.init()
         await init_cache()
-    # except Exception as e:
-    #     logger.error(f"检查数据库时发生错误：{str(e)}")
+        logger.info("数据库初始化完成")
+
+    if _cache.initial is True:
+        if await _verify_resource_timeliness(_cache):
+            logger.info(f"资源值{_cache.manifestId}已是最新")
+        else:
+            logger.info("资源过期，已更新")
+
+
+async def check_db():
+    try:
+        await _check_database_validity()
+
+        with engine.connect():
+            _cache = await DB.get_version()
+            await _verify_db_resource(_cache)
+
+    except (ConnectionError, ProgrammingError):
+        logger.warning("数据库检查失败，尝试初始化数据库")
+        await DB.init()
+        await init_cache()
+        logger.info("数据库初始化完成")
     finally:
-        engine.dispose()  # 关闭数据库连接
+        engine.dispose()
 
 
 async def generate_database_key():
@@ -100,7 +138,7 @@ async def generate_database_key():
         except Exception as e:
             logger.warning(f"读取密钥文件时出错：{str(e)}")
         else:
-            logger.info(f"秘钥{key_str}读取成功")
+            logger.info("秘钥读取成功")
 
     else:
         # 自动生成一个新的密钥并保存到指定路径
@@ -148,13 +186,13 @@ async def _verify_resource_timeliness(_cache) -> bool:
         _data = await get_version()
         if _cache.manifestId == _data["manifestId"]:
             return True
-        await cache_version()
+        await init_cache()
         return False
     except (ResponseError, SQLAlchemyError) as e:
         if e is ResponseError:
             logger.error(f"获取版本信息失败：{str(e)}")
         elif e is SQLAlchemyError:
-            logger.error(f"数据库错误：{str(e)}")
+            raise DatabaseError(f"数据库错误：{str(e)}") from e
 
 
 # async def cache_image_resources():
