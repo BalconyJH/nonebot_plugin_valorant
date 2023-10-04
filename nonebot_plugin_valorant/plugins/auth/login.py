@@ -1,16 +1,14 @@
-import json
-from contextlib import suppress
 from typing import Any, Dict, Union
 
-from nonebot import on_command
+from nonebot import logger, on_command
 from nonebot.params import Event, T_State, ArgPlainText
 from nonebot_plugin_saa import Text, Image, MessageFactory
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent as PrivateMessageEventV11
 from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEventV12
 
 from nonebot_plugin_valorant.database.db import DB
-from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 from nonebot_plugin_valorant.utils import user_login_status
+from nonebot_plugin_valorant.utils.requestlib.auth import Auth
 from nonebot_plugin_valorant.utils.errors import AuthenticationError
 
 login = on_command("login", aliases={"登录"}, priority=5, block=True)
@@ -28,7 +26,7 @@ async def login_db(
     result: Dict[str, Any],
 ):
     if result["auth"] == "response":
-        with suppress(AuthenticationError):
+        try:
             region = await auth.get_region(
                 result["data"]["access_token"], result["data"]["token_id"]
             )
@@ -36,23 +34,26 @@ async def login_db(
                 result["data"]["access_token"]
             )
             puuid, name, tag = await auth.get_userinfo(result["data"]["access_token"])
-            player_name = f"{name}#{tag}" if tag and tag is not None else "no_username"
-        await DB.login(
-            qq_uid=str(event.user_id),
-            username=player_name,
-            cookie=json.dumps(result["data"]["cookie"]),
-            access_token=result["data"]["access_token"],
-            token_id=result["data"]["token_id"],
-            region=region,
-            emt=entitlements_token,
-            puuid=puuid,
-        )
-        await login.finish("登录成功")
+            await DB.login(
+                qq_uid=str(event.user_id),
+                username=f"{name}#{tag}",
+                cookie=result["data"]["cookie"],
+                access_token=result["data"]["access_token"],
+                token_id=result["data"]["token_id"],
+                expiry_token=result["data"]["expiry_token"],
+                region=region,
+                emt=entitlements_token,
+                puuid=puuid,
+            )
+            logger.info(f"{name}#{tag}登录成功, QQ:{event.user_id}")
+            await login.finish(f"{name}#{tag}登录成功")
+        except AuthenticationError as e:
+            await login.finish(f"登录失败{e}")
 
 
 @login.handle()
 async def _(event: Union[PrivateMessageEventV11, PrivateMessageEventV12]):
-    if await user_login_status(str(event.user_id)) is not None:
+    if await user_login_status(str(event.user_id)) is True:
         await login.finish("您已登录,如需更换账号请先注销")
 
 
