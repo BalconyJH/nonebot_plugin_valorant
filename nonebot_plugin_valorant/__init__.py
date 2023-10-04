@@ -5,7 +5,12 @@ from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
 
 from nonebot_plugin_valorant.config import Config
-from nonebot_plugin_valorant.utils import on_startup
+from nonebot_plugin_valorant.utils import (
+    check_db,
+    on_startup,
+    check_proxy,
+    generate_database_key,
+)
 
 from .config import plugin_config
 

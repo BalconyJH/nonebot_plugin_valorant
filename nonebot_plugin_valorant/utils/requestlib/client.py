@@ -1,6 +1,6 @@
 from importlib.metadata import version
 
-from nonebot_plugin_valorant.utils.reqlib.request_res import (
+from nonebot_plugin_valorant.utils.requestlib.request_res import (
     base_url,
     get_request_json,
     get_request_json_sync,
