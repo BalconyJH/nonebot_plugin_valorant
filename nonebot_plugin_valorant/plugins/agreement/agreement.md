@@ -21,10 +21,10 @@ nonebot_plugin_valorant 没有得到 Riot Games 的认可，并不反映 Riot Ga
 
 ## 2. 内容
 
- **nonebot_plugin_valorant** 并不会向任何私有服务器发送您的个人信息（包括但不限于账户密码，邮箱地址），所有可用内容，即信息、链接、图片都是直接来自非官方 API [HeyM1ke/ValorantClientAPI](https://github.com/RumbleMike/ValorantClientAPI) 或 [Valorant-API.com](https://valorant-api.com/) 按 "原样" 提供。对于 **nonebot_plugin_valorant** 上的所有内容，我们不进行审查、验证或认证，它可能包含不准确或错误的信息。我们不对服务中包含的任何内容的质量、适用性、真实性、准确性或完整性作出任何声明、保证或保障。您承认对您使用或依赖任何内容所产生的所有风险负全部责任。
+ **nonebot_plugin_valorant** 并不会向任何私有服务器发送您的个人信息（包括但不限于账户密码，邮箱地址），所有可用内容，即信息、链接、图片都是直接来自非官方 API [HeyM1ke/ValorantClientAPI](https://github.com/RumbleMike/ValorantClientAPI) 或 [Valorant-API.com](https://valorant-api.com/) 按 "原样" 提供。对于 **nonebot_plugin_valorant** 上的所有内容，我们不进行审查、验证或认证，它可能包含不准确或错误的信息。我们不对服务或代码中包含的任何内容的质量、适用性、真实性、准确性或完整性作出任何声明、保证或保障。您承认对您使用或依赖任何内容所产生的所有风险负全部责任。
 
-## 3. 终端安全责任
-**nonebot_plugin_valorant** 将运用各种安全技术和程序建立完善的管理制度来保护您的个人信息，以免遭受未经授权的访问、使用或披露，但是您承认和同意**nonebot_plugin_valorant** 不能就此提供任何保证。
+## 3. 信息安全
+**nonebot_plugin_valorant** 将运用各种基于本地的安全技术来保护您的个人信息，以免遭受未经授权的访问、使用或披露，但是您承认和同意**nonebot_plugin_valorant** 不能就此提供任何保证。
 
 ## 4. 其他
 您使用从 nonebot_plugin_valorant 中托管的代码即视为您已阅读本协议并接受本协议的约束。 **nonebot_plugin_valorant** 有权在必要时修改本协议条款。您可以在相关服务页面查阅最新版本的协议条款。本协议条款变更后，如果您继续使用从 **nonebot_plugin_valorant** 托管的代码，即视为您已接受变更后的协议。
