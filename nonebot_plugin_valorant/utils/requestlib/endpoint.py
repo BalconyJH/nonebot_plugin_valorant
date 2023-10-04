@@ -3,11 +3,10 @@ from typing import Any, Dict, Mapping, Optional
 import urllib3
 
 from nonebot_plugin_valorant.utils import message_translator
-from nonebot_plugin_valorant.utils.errors import HandshakeError
-from nonebot_plugin_valorant.utils.reqlib.auth import AuthCredentials
-from nonebot_plugin_valorant.utils.reqlib.client import get_client_version
-from nonebot_plugin_valorant.utils.reqlib.player_info import PlayerInformation
-from nonebot_plugin_valorant.utils.reqlib.request_res import (
+from nonebot_plugin_valorant.utils.requestlib.auth import AuthCredentials
+from nonebot_plugin_valorant.utils.requestlib.client import get_client_version
+from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
+from nonebot_plugin_valorant.utils.requestlib.request_res import (
     base_endpoint,
     get_request_json,
     put_request_json,
@@ -19,7 +18,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class EndpointAPI:
-    def __init__(self, player_info: PlayerInformation) -> None:
+    def __init__(
+        self, player_info: PlayerInformation, auth_info: AuthCredentials
+    ) -> None:
         """
         传入AuthCredentials初始化API
         Args:
@@ -35,18 +36,20 @@ class EndpointAPI:
         # language
         self.locale_code = "en-US"
 
-        self.headers = self.__build_headers(self.auth.headers)
+        self.headers = self.__build_headers(self.auth.headers, auth_info)
         self.puuid = player_info.puuid
         self.region = player_info.region
         self.player_name = player_info.player_name
         self.__format_region()
         self.__build_urls()
 
-    def __build_headers(self, headers) -> Dict[str, Any]:
+    def __build_headers(self, headers, auth: AuthCredentials) -> Dict[str, Any]:
         """build headers"""
 
         headers["X-Riot-ClientPlatform"] = self.client_platform
         headers["X-Riot-ClientVersion"] = get_client_version()
+        headers["X-Riot-Entitlements-JWT"] = auth.entitlements_token
+        headers["Authorization"] = f"Bearer {auth.access_token}"
         return headers
 
     def __format_region(self):
@@ -63,10 +66,10 @@ class EndpointAPI:
 
         self.shard = self.region
 
-        if self.region in region_shard_override:
+        if self.region in region_shard_override.keys():
             self.shard = region_shard_override[self.region]
 
-        if self.shard in shard_region_override:
+        if self.shard in shard_region_override.keys():
             self.region = shard_region_override[self.shard]
 
     def __build_urls(self):
@@ -89,7 +92,7 @@ class EndpointAPI:
         # 基于地区和分区构建URL
         self.glz = base_endpoint_glz.format(region=self.region, shard=self.shard)
 
-    async def fetch(self, api_path: str = "/", api_url: str = "pd") -> Dict:
+    async def get(self, api_path: str = "/", api_url: str = "pd") -> Dict:
         """
         从 API 获取数据。
 
@@ -105,10 +108,7 @@ class EndpointAPI:
         """
         api_endpoint = getattr(self, api_url)
 
-        data = await get_request_json(f"{api_endpoint}{api_path}", headers=self.headers)
-
-        if data["status_code"] == 400:
-            raise HandshakeError("errors.AUTH.COOKIES_EXPIRED")
+        return await get_request_json(f"{api_endpoint}{api_path}", headers=self.headers)
 
     async def put(
         self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None
@@ -138,25 +138,25 @@ class EndpointAPI:
         Contracts_Fetch
         Get a list of contracts and completion status including match history
         """
-        return await self.fetch(f"/contracts/v1/contracts/{self.puuid}", "pd")
+        return await self.get(f"/contracts/v1/contracts/{self.puuid}", "pd")
 
     async def fetch_content(self) -> Mapping[str, Any]:
         """
         Content_FetchContent
         Get names and ids for game content such as agents, maps, guns, etc.
         """
-        return await self.fetch("/content-service/v3/content", "shared")
+        return await self.get("/content-service/v3/content", "shared")
 
     async def fetch_account_xp(self) -> Mapping[str, Any]:
         """
         AccountXP_GetPlayer
         Get the account level, XP, and XP history for the active player
         """
-        return await self.fetch(f"/account-xp/v1/players/{self.puuid}", "pd")
+        return await self.get(f"/account-xp/v1/players/{self.puuid}", "pd")
 
     async def fetch_player_mmr(self, puuid: str) -> Mapping[str, Any]:
         puuid = await self.__check_puuid(puuid)
-        return await self.fetch(f"/mmr/v1/players/{puuid}", "pd")
+        return await self.get(f"/mmr/v1/players/{puuid}", "pd")
 
     # store endpoints
 
@@ -216,7 +216,7 @@ class EndpointAPI:
         """
         获取商店中所有商品的价格信息。
         """
-        return await self.fetch("/store/v1/offers/", "pd")
+        return await self.get("/store/v1/offers/", "pd")
 
     async def get_player_storefront(self) -> Mapping[str, Any]:
         """
@@ -232,7 +232,7 @@ class EndpointAPI:
             "httpStatus": 400 验证/解码 RSO 访问令牌失败
 
         """
-        return await self.fetch(f"/store/v2/storefront/{self.puuid}", "pd")
+        return await self.get(f"/store/v2/storefront/{self.puuid}", "pd")
 
     async def get_player_wallet(self) -> Mapping[str, Any]:
         """
@@ -245,14 +245,14 @@ class EndpointAPI:
         Returns:
             包含玩家钱包中 Valorant 点数和 Radiant 点数余额的字典。
         """
-        return await self.fetch(f"/store/v1/wallet/{self.puuid}", "pd")
+        return await self.get(f"/store/v1/wallet/{self.puuid}", "pd")
 
     async def store_fetch_order(self, order_id: str) -> Mapping[str, Any]:
         """
         Store_GetOrder
         {order id}: The ID of the order. Can be obtained when creating an order.
         """
-        return await self.fetch(f"/store/v1/order/{order_id}", "pd")
+        return await self.get(f"/store/v1/order/{order_id}", "pd")
 
     async def store_fetch_entitlements(self, item_type: Mapping) -> Mapping[str, Any]:
         # noinspection SpellCheckingInspection
@@ -271,9 +271,7 @@ class EndpointAPI:
         '3ad1b2b2-acdb-4524-852f-954a76ddae0a': '皮肤染色',\n
         'de7caa6b-adf7-4588-bbd1-143831e786c6': '玩家称号',\n
         """
-        return await self.fetch(
-            f"/store/v1/entitlements/{self.puuid}/{item_type}", "pd"
-        )
+        return await self.get(f"/store/v1/entitlements/{self.puuid}/{item_type}", "pd")
 
     # local utility functions
 
