@@ -1,22 +1,22 @@
-from typing import Any, Dict
+from typing import Dict
 
-from cryptography.fernet import Fernet
 from nonebot import get_driver
 from nonebot.log import logger
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import sessionmaker
+from cryptography.fernet import Fernet
 from sqlalchemy.orm.query import Query
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy_utils import create_database, database_exists
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.database.models import (
-    BaseModel,
+from nonebot_plugin_valorant.utils.errors import DatabaseError
+from nonebot_plugin_valorant.database.models import (  # UserShop,
     Tier,
     User,
     Version,
-    WeaponSkin,
-    UserShop,
+    BaseModel,
+    WeaponSkins,
 )
 
 engine = create_engine(plugin_config.valorant_database)
@@ -47,9 +47,11 @@ class DB:
         """
         初始化数据库。创建数据库和表格。
         """
-        await cls._create_database()
-        await cls._create_tables()
-        logger.info("数据库初始化完成")
+        try:
+            await cls._create_tables()
+            await cls._create_database()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"数据库初始化失败{e}") from e
 
     @staticmethod
     async def _create_database():
@@ -59,6 +61,7 @@ class DB:
         try:
             if not database_exists(engine.url):
                 create_database(engine.url)
+                logger.debug("创建数据库成功")
         except SQLAlchemyError as e:
             logger.error(f"创建数据库失败{e}")
 
@@ -69,6 +72,7 @@ class DB:
         """
         try:
             BaseModel.metadata.create_all(engine)
+            logger.info("创建表成功")
         except SQLAlchemyError as e:
             logger.error(f"创建表失败{e}")
 
@@ -101,7 +105,7 @@ class DB:
         # todo 级联删除用户的所有数据(shop, user, misson, etc.)
 
     @classmethod
-    async def get_user(cls, qq_uid: str) -> Query:
+    async def get_user(cls, qq_uid: str):
         """
         获取用户信息。
 
@@ -115,6 +119,16 @@ class DB:
         return user.first()
 
     @classmethod
+    async def update_user(cls, **kwargs):
+        """
+        更新用户信息。
+
+        参数:
+        - kwargs: 包含用户信息的关键字参数。
+        """
+        await User.update(session, **kwargs)
+
+    @classmethod
     async def cache_skin(cls, data: Dict):
         """
         缓存商店信息。
@@ -122,10 +136,10 @@ class DB:
         参数:
         """
         for uuid, skin_data in data.items():
-            existing_skin = await WeaponSkin.get(session, uuid=uuid)
+            existing_skin = await WeaponSkins.get(session, uuid=uuid)
             if existing_skin.first() is not None:
                 continue
-            await WeaponSkin.add(session, **skin_data)
+            await WeaponSkins.add(session, **skin_data)
         logger.info("skin缓存完成")
 
     @classmethod
@@ -153,18 +167,14 @@ class DB:
     #     for version_data in data:
 
     @classmethod
-    async def get_version(cls, version_fields) -> dict[Any, Any]:
+    async def get_version(cls):
         """
         查询版本信息。
 
-        参数:
-        - session: 数据库会话对象
-        - version_fields: 版本字段列表，包含要查询的版本字段名
-
-        返回:
-        - 查询结果的字典，键为版本字段名，值为对应的内容
+        返回值:
+        - version: 版本信息。
         """
-        return await Version.get(session, **version_fields)
+        return (await Version.get(session)).first()
 
     @classmethod
     async def update_version(cls, **kwargs):
@@ -174,30 +184,57 @@ class DB:
         参数:
         - kwargs: 包含版本信息的关键字参数。
         """
-        manifest_id = kwargs["manifestId"]
-        version_cache = await Version.get(session, manifestId=manifest_id)
+        try:
+            version_cache = await DB.get_version()
+        except KeyError as e:
+            raise DatabaseError("版本信息不存在") from e
 
-        if version_cache.first() is None:
+        if version_cache is None:
             await Version.add(session, **kwargs)
+        elif version_cache.manifestId == kwargs["manifestId"]:
+            logger.info("版本信息已是最新")
+
         else:
-            existing_version = version_cache.first()
-            if existing_version.manifestId != manifest_id:
-                await Version.update(session, manifestId=manifest_id, **kwargs)
-            logger.info("版本信息已存在")
+            await Version.add(session, **kwargs)
+            await Version.delete(session, manifestId=version_cache.manifestId)
+            logger.info("版本信息已刷新")
 
     @classmethod
     async def init_version(cls, **kwargs):
         await Version.add(session, **kwargs)
 
+    # @classmethod
+    # async def update_user_store_offer(cls, **kwargs: object):
+    #     """
+    #     更新用户商店信息。
+    #
+    #     参数:
+    #     - kwargs: 包含用户商店信息的关键字参数。
+    #     """
+    #     UserShop.update(session, **kwargs)
+
     @classmethod
-    async def update_user_store_offer(cls, **kwargs: object):
+    async def refresh_token(cls, **kwargs: object):
         """
         更新用户商店信息。
 
         参数:
         - kwargs: 包含用户商店信息的关键字参数。
         """
-        await UserShop.update(session, **kwargs)
+        await User.update(session, **kwargs)
+
+    @classmethod
+    async def get_skin(cls, uuid: str):
+        """
+        获取武器皮肤信息。
+
+        参数:
+        - uuid: 武器皮肤的 UUID。
+
+        返回值:
+        - skin: 武器皮肤信息。
+        """
+        return (await WeaponSkins.get(session, uuid=uuid)).first()
 
 
 get_driver().on_shutdown(DB.close)

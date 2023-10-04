@@ -1,17 +1,5 @@
-# from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, Session, relationship, declarative_base
-from sqlalchemy import (
-    JSON,
-    VARCHAR,
-    Text,
-    Float,
-    Table,
-    Column,
-    Boolean,
-    DateTime,
-    func,
-    select,
-)
+from sqlalchemy import JSON, BIGINT, VARCHAR, Column, Boolean, DateTime, func
 
 Base = declarative_base()
 
@@ -73,52 +61,53 @@ class BaseModel(Base):
 
     @classmethod
     async def delete(cls, session: Session, **kwargs) -> bool:
-        query = await cls.get(session, **kwargs)
-        if query.first() is not None:
-            session.delete(query.first())
+        query = session.query(cls).filter_by(**kwargs).first()
+        if query is not None:
+            session.delete(query)
             session.commit()
             return True
         return False
 
     @classmethod
     async def update(cls, session: Session, **kwargs) -> bool:
-        query = await cls.get(session)
-        if query is not None:
+        query = session.query(cls).filter_by(**kwargs)
+        if query.first() is not None:
             query.update(**kwargs)
+            session.commit()
             return True
         return False
 
 
-class UserShop(BaseModel):
-    """
-    This class represents a user's shop in the application.
-
-    Attributes:
-        uuid (str): The unique identifier of the user shop.
-        bonus_store (Relationship["BonusStore"]): The relationship between the user shop and associated bonus store.
-        skins_store (Relationship["SkinsStore"]): The relationship between the user shop and associated skins store.
-        accessory_store (Relationship["AccessoryStore"]): The relationship between the user shop and associated accessory store.
-
-    """
-
-    __tablename__ = "user_shop"
-
-    uuid = Column(VARCHAR(255), primary_key=True)
-    bonus_store: relationship(
-        "BonusStore",
-        backref="user_shop",
-        primaryjoin="UserShop.uuid == foreign(BonusStore.uuid)",
-    )
-    skins_store: relationship(
-        "SkinsStore",
-        backref="user_shop",
-        primaryjoin="UserShop.uuid == foreign(SkinsStore.uuid)",
-    )
-    accessory_store: relationship(
-        "AccessoryStore",
-        backref="user_shop",
-        primaryjoin="UserShop.uuid == foreign(AccessoryStore.uuid)",
-    )
+# class UserShop(BaseModel):
+#     """
+#     This class represents a user's shop in the application.
+#
+#     Attributes:
+#         uuid (str): The unique identifier of the user shop.
+#         bonus_store (Relationship["BonusStore"]): The relationship between the user shop and associated bonus store.
+#         skins_store (Relationship["SkinsStore"]): The relationship between the user shop and associated skins store.
+#         accessory_store (Relationship["AccessoryStore"]): The relationship between the user shop and associated accessory store.
+#
+#     """
+#
+#     __tablename__ = "user_shop"
+#
+#     uuid = Column(VARCHAR(255), primary_key=True)
+#     bonus_store: relationship(
+#         "BonusStore",
+#         backref="user_shop",
+#         primaryjoin="UserShop.uuid == foreign(BonusStore.uuid)",
+#     )
+#     skins_store: relationship(
+#         "SkinsStore",
+#         backref="user_shop",
+#         primaryjoin="UserShop.uuid == foreign(SkinsStore.uuid)",
+#     )
+#     accessory_store: relationship(
+#         "AccessoryStore",
+#         backref="user_shop",
+#         primaryjoin="UserShop.uuid == foreign(AccessoryStore.uuid)",
+#     )
 
 
 # class FeaturedBundle:
@@ -223,7 +212,7 @@ class User(BaseModel):
     cookie = Column(JSON)
     access_token = Column(VARCHAR(2000))
     token_id = Column(VARCHAR(2000))
-    expiry_token = Column(Float)
+    expiry_token = Column(BIGINT)
     emt = Column(VARCHAR(2000))
     username = Column(VARCHAR(255))
     region = Column(VARCHAR(255))
@@ -233,7 +222,7 @@ class User(BaseModel):
         return f"<User(puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', emt='{self.emt}', username='{self.username}', region='{self.region}', qq_uid='{self.qq_uid}', timestamp='{self.timestamp}')>"
 
 
-class WeaponSkin(BaseModel):
+class WeaponSkins(BaseModel):
     """
     This class represents a weapon skin in the database.
 
@@ -248,14 +237,14 @@ class WeaponSkin(BaseModel):
 
     __tablename__ = "weapon_skins"
 
-    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
-    names: Mapped[JSON] = Column(JSON)
-    icon: Mapped[str] = Column(VARCHAR(255))
-    tier: Mapped[str] = Column(VARCHAR(255))
-    hash: Mapped[str] = Column(VARCHAR(255))
+    uuid = Column(VARCHAR(255), primary_key=True)
+    names = Column(JSON)
+    icon = Column(VARCHAR(255))
+    tier = Column(VARCHAR(255))
+    hash = Column(VARCHAR(255))
 
     def __repr__(self):
-        return f"<WeaponSkin(uuid='{self.uuid}', names='{self.names}', icon='{self.icon}', tier='{self.tier}', hash='{self.hash}')>"
+        return f"<WeaponSkins(uuid='{self.uuid}', names='{self.names}', icon='{self.icon}', tier='{self.tier}', hash='{self.hash}')>"
 
 
 class Version(BaseModel):
