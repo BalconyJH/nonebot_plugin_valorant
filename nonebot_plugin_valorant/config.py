@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Union
 
 from nonebot import get_driver
@@ -25,6 +26,7 @@ class Config(BaseSettings, extra=Extra.ignore):
     valorant_to_me: bool = True
     valorant_command: Union[str, List[str]] = ""
     language_type: str = ""
+    resource_path = Path(__file__).parent / "resources" / "image" / "skin"
 
 
 global_config = get_driver().config

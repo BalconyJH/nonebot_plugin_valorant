@@ -11,7 +11,6 @@ from pydantic import BaseModel
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.utils import message_translator
-from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInfo
 from nonebot_plugin_valorant.utils.errors import (
     ResponseError,
     DataParseError,
