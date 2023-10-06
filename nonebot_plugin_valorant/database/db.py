@@ -119,14 +119,16 @@ class DB:
         return user.first()
 
     @classmethod
-    async def update_user(cls, **kwargs):
+    async def update_user(cls, filter_by: dict, update_values: dict):
         """
         更新用户信息。
 
         参数:
-        - kwargs: 包含用户信息的关键字参数。
+        - session: SQLAlchemy 的 Session 对象。
+        - filter_by: 用于筛选记录的字段和值。
+        - update_values: 用于更新记录的字段和新值。
         """
-        await User.update(session, **kwargs)
+        await User.update(session, filter_by=filter_by, update_values=update_values)
 
     @classmethod
     async def cache_skin(cls, data: Dict):
@@ -213,15 +215,15 @@ class DB:
     #     """
     #     UserShop.update(session, **kwargs)
 
-    @classmethod
-    async def refresh_token(cls, **kwargs: object):
-        """
-        更新用户商店信息。
-
-        参数:
-        - kwargs: 包含用户商店信息的关键字参数。
-        """
-        await User.update(session, **kwargs)
+    # @classmethod
+    # async def refresh_token(cls, **kwargs: object):
+    #     """
+    #     更新用户商店信息。
+    #
+    #     参数:
+    #     - kwargs: 包含用户商店信息的关键字参数。
+    #     """
+    #     await User.update(session, **kwargs)
 
     @classmethod
     async def get_skin(cls, uuid: str):
@@ -232,7 +234,7 @@ class DB:
         - uuid: 武器皮肤的 UUID。
 
         返回值:
-        - skin: 武器皮肤信息。
+        - skins: 武器皮肤信息。
         """
         return (await WeaponSkins.get(session, uuid=uuid)).first()
 

@@ -1,9 +1,11 @@
+import copy
+
 from ...database import DB
 from ..errors import RequestError
 from ..requestlib.endpoint import EndpointAPI
 from ..requestlib.auth import Auth, AuthCredentials
 from ..requestlib.player_info import PlayerInformation
-from ..parsinglib.endpoint_parsing import parse_raw_data
+from ..parsinglib.endpoint_parsing import skin_panel_parser
 
 
 async def login_status(qq_uid: str) -> bool:
@@ -25,34 +27,38 @@ async def parse_user_info(qq_uid: str):
     )
     data = await Auth.token_validity(auth_info.cookie, auth_info.expiry_token)
     if data is None:
+        print("token有效")
         try:
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
-            return await parse_raw_data(resp)
+            return await skin_panel_parser(resp)
         except RequestError as error:
+            print(error)
             data = await Auth().redeem_cookies(auth_info.cookie)
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
             await DB.update_user(
-                qq_uid=qq_uid,
-                access_token=data.access_token,
-                token_id=data.token_id,
-                expiry_token=data.expiry_token,
-                emt=data.entitlements_token,
-                cookie=data.cookie,
+                filter_by={"qq_uid": qq_uid},
+                update_values={
+                    "access_token": data.access_token,
+                    "token_id": data.token_id,
+                    "expiry_token": data.expiry_token,
+                    "emt": data.entitlements_token,
+                    "cookie": data.cookie,
+                },
             )
-            return await parse_raw_data(resp)
+            return await skin_panel_parser(resp)
     else:
+        print("token无效")
         await DB.update_user(
-            qq_uid=qq_uid,
-            access_token=data.access_token,
-            token_id=data.token_id,
-            expiry_token=data.expiry_token,
-            emt=data.entitlements_token,
-            cookie=data.cookie,
+            filter_by={"qq_uid": qq_uid},
+            update_values={
+                "access_token": data.access_token,
+                "token_id": data.token_id,
+                "expiry_token": data.expiry_token,
+                "emt": data.entitlements_token,
+                "cookie": data.cookie,
+            },
         )
-        auth_info.access_token = data.access_token
-        auth_info.token_id = data.token_id
-        auth_info.expiry_token = data.expiry_token
-        auth_info.entitlements_token = data.entitlements_token
-        auth_info.cookie = data.cookie
+        print(data.expiry_token)
+        auth_info = copy.copy(data)
         resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
-        return await parse_raw_data(resp)
+        return await skin_panel_parser(resp)

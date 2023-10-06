@@ -69,13 +69,10 @@ class BaseModel(Base):
         return False
 
     @classmethod
-    async def update(cls, session: Session, **kwargs) -> bool:
-        query = session.query(cls).filter_by(**kwargs)
-        if query.first() is not None:
-            query.update(**kwargs)
-            session.commit()
-            return True
-        return False
+    async def update(cls, session: Session, filter_by: dict, update_values: dict):
+        query = session.query(cls).filter_by(**filter_by)
+        query.update(update_values)
+        session.commit()
 
 
 # class UserShop(BaseModel):
@@ -154,11 +151,13 @@ class SkinsStore(BaseModel):
 
     __tablename__ = "skins_store"
 
-    uuid: Mapped[str] = Column(VARCHAR(255), primary_key=True)
-    offer_id_1: Mapped[str] = Column(VARCHAR(255))
-    offer_id_2: Mapped[str] = Column(VARCHAR(255))
-    offer_id_3: Mapped[str] = Column(VARCHAR(255))
-    offer_id_4: Mapped[str] = Column(VARCHAR(255))
+    uuid = Column(VARCHAR(255), primary_key=True)
+    offer_id_1 = Column(VARCHAR(255))
+    offer_id_2 = Column(VARCHAR(255))
+    offer_id_3 = Column(VARCHAR(255))
+    offer_id_4 = Column(VARCHAR(255))
+    duration = Column(BIGINT)
+    timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
 
 class BonusStore(BaseModel):
@@ -224,14 +223,14 @@ class User(BaseModel):
 
 class WeaponSkins(BaseModel):
     """
-    This class represents a weapon skin in the database.
+    This class represents a weapon skins in the database.
 
     Attributes:
-        uuid (str): The unique identifier for the weapon skin, used as the primary key.
-        names (JSON): The names of the weapon skin.
-        icon (str): The icon of the weapon skin.
-        tier (str): The tier of the weapon skin.
-        hash (str): The hash value of the weapon skin resource.
+        uuid (str): The unique identifier for the weapon skins, used as the primary key.
+        names (JSON): The names of the weapon skins.
+        icon (str): The icon of the weapon skins.
+        tier (str): The tier of the weapon skins.
+        hash (str): The hash value of the weapon skins resource.
 
     """
 
