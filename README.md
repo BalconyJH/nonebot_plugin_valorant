@@ -1,12 +1,8 @@
 # nonebot_plugin_valorant
 
-### ⚠️ 无畏契约暂无支持计划
+# 很不幸，拳头添加了cf防爬&旧的验证方式也失效了，该项目终止开发
 
-# 項目未完成(未經測試),不要嘗試加載
-
-# 我知道你很急，但是你先别急，要急也是我先急
-
-# Project is incomplete (untested), do not try to load
+# Unfortunately, Riot has added cloudflare anti-climbing and the old verification method is no longer effective, so the project has been terminated.
 
 ## ✨️ 特性
 
