@@ -238,5 +238,18 @@ class DB:
         """
         return (await WeaponSkins.get(session, uuid=uuid)).first()
 
+    @classmethod
+    async def update_player_skin_panel(
+        cls, filter_by: dict, update_values: dict
+    ) -> None:
+        """
+        更新玩家皮肤面板信息。
+
+        参数:
+        - filter_by: 用于筛选记录的字段和值。
+        - update_values: 用于更新记录的字段和新值。
+        """
+        await User.update(session, filter_by=filter_by, update_values=update_values)
+
 
 get_driver().on_shutdown(DB.close)

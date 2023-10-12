@@ -29,5 +29,4 @@ class Config(BaseSettings, extra=Extra.ignore):
     resource_path = Path(__file__).parent / "resources" / "image" / "skin"
 
 
-global_config = get_driver().config
-plugin_config = Config.parse_obj(global_config)
+plugin_config = Config.parse_obj(get_driver().config)

@@ -1,8 +1,8 @@
 from nonebot import logger
 
 from nonebot_plugin_valorant.database import DB
-from nonebot_plugin_valorant.utils.reqlib.request_res import get_skin, get_tier
-from nonebot_plugin_valorant.utils.reqlib.client import (
+from nonebot_plugin_valorant.utils.requestlib.request_res import get_skin, get_tier
+from nonebot_plugin_valorant.utils.requestlib.client import (
     get_version,
     get_manifest_id,
     get_version_data,

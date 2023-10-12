@@ -3,7 +3,6 @@ import io
 from pathlib import Path
 from typing import Union
 
-from PIL import Image as Img
 from nonebot import require, on_command
 from nonebot_plugin_htmlrender import md_to_pic
 from nonebot_plugin_saa import Image, MessageFactory

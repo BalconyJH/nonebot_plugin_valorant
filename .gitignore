@@ -153,4 +153,5 @@ dmypy.json
 /nonebot_plugin_valorant/data/
 
 
-
+# valorant cache
+/nonebot_plugin_valorant/resources/image/skin/

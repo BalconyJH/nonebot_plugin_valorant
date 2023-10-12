@@ -2,6 +2,7 @@ import copy
 import time
 from pathlib import Path
 
+from rich import print
 from nonebot import logger
 from nonebot_plugin_htmlrender import get_new_page, template_to_pic
 
@@ -21,6 +22,9 @@ async def login_status(qq_uid: str) -> bool:
 
 async def parse_user_info(qq_uid: str):
     user = await DB.get_user(qq_uid)
+    if user is None:
+        logger.error(f"用户 {qq_uid} 不存在")
+        return None
     player_info = PlayerInformation(
         puuid=user.puuid,
         player_name=user.username,
@@ -68,6 +72,7 @@ async def parse_user_info(qq_uid: str):
 
 
 async def render_skin_panel(data: SkinsPanel) -> bytes:
+    print(data)
     start_time = time.time()
     template_path = str(Path(__file__).parent / "templates")
     template_name = "storefront_skinpanel.html"

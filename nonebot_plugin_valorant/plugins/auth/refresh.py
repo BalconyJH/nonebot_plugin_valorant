@@ -8,8 +8,8 @@ from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEve
 
 from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.database.models import User
-from nonebot_plugin_valorant.utils.reqlib.auth import Auth
 from nonebot_plugin_valorant.utils.errors import DatabaseError
+from nonebot_plugin_valorant.utils.requestlib.auth import Auth
 
 refresh = on_command("refresh", aliases={"刷新"}, priority=5, block=True)
 
@@ -34,7 +34,7 @@ async def _(
         await refresh.finish()
     try:
         cache = await DB.get_user(event.user_id)
-        await User.update(uid)
+        # await User.update(uid)
         msg_builder = MessageFactory(Text("刷新成功"))
         await msg_builder.send()
         await refresh.finish()

@@ -100,7 +100,7 @@ def get_request_json_sync(
             else:
                 raise ResponseError("errors.API.REQUEST_FAILED")
         except httpx.RequestError as error:
-            raise ResponseError("API.REQUEST_FAILED") from error
+            raise ResponseError("API.REQUEST_FAILED", cause=error) from error
 
 
 def put_request_json_sync(

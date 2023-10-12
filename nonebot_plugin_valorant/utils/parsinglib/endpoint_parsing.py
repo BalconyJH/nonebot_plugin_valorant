@@ -23,7 +23,7 @@ class SkinsPanel(BaseModel):
     duration: int
 
 
-async def parse_raw_data(data):
+async def skin_panel_parser(data):
     """
     Parse raw data from endpoint.
     """

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 from typing import Any, Dict, Tuple, Optional
 
+from rich import print
 import aiohttp as aiohttp
 import urllib3.exceptions
 from pydantic import BaseModel
@@ -325,8 +326,10 @@ class Auth:
             new_cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
         await session.close()
-
-        access_token, token_id = self._extract_tokens_from_uri(data)
+        try:
+            access_token, token_id = self._extract_tokens_from_uri(data)
+        except IndexError:
+            raise AuthenticationError(message_translator("errors.AUTH.COOKIES_EXPIRED"))
         entitlements_token = await self.get_entitlements_token(access_token)
         expiry_token = int(datetime.timestamp(datetime.now() + timedelta(minutes=59)))
 
