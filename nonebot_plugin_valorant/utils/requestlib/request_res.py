@@ -264,19 +264,19 @@ def parse_skin(skin: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         解析后的武器皮肤数据
     """
-    skin_uuid = skin["levels"][0]["uuid"]
-    skin_names = skin["displayName"]
-    skin_icon = skin["levels"][0]["displayIcon"]
     skin_tier = skin["contentTierUuid"]
+    skin_uuid = skin["levels"][0]["uuid"]
+    skin_names = skin["levels"][0]["displayName"]
+    skin_icon = skin["levels"][0]["displayIcon"]
 
     return {
         "uuid": skin_uuid,
         "names": skin_names,
         "icon": skin_icon,
         "tier": skin_tier if skin_tier is not None else "None",
-        "hash": calculate_hash(
-            f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}"
-        ),  # 检查资源完整性
+        # "hash": calculate_hash(
+        #     f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}"
+        # ),  # 检查资源完整性
     }
 
 

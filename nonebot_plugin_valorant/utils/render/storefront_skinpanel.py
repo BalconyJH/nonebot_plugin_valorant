@@ -2,16 +2,17 @@ import copy
 import time
 from pathlib import Path
 
+from rich import print
 from nonebot import logger
-from nonebot_plugin_htmlrender import get_new_page, template_to_pic
+from nonebot_plugin_htmlrender import template_to_pic
 
 from nonebot_plugin_valorant.config import plugin_config
+from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
 
 from ...database import DB
 from ..errors import RequestError
 from ..requestlib.endpoint import EndpointAPI
 from ..requestlib.auth import Auth, AuthCredentials
-from ..requestlib.player_info import PlayerInformation
 from ..parsinglib.endpoint_parsing import SkinsPanel, skin_panel_parser
 
 
@@ -36,6 +37,7 @@ async def parse_user_info(qq_uid: str):
     if data is None:
         try:
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
+            print(resp)
             return await skin_panel_parser(resp)
         except RequestError as error:
             data = await Auth().redeem_cookies(auth_info.cookie)
@@ -68,6 +70,7 @@ async def parse_user_info(qq_uid: str):
 
 
 async def render_skin_panel(data: SkinsPanel) -> bytes:
+    print(data)
     start_time = time.time()
     template_path = str(Path(__file__).parent / "templates")
     template_name = "storefront_skinpanel.html"
@@ -103,5 +106,5 @@ async def render_skin_panel(data: SkinsPanel) -> bytes:
         },
         wait=2,
     )
-    logger.info(f"渲染耗时: {time.time() - start_time}")
+    logger.debug(f"渲染耗时: {time.time() - start_time}")
     return pic
