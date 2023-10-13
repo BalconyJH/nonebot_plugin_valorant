@@ -50,8 +50,16 @@ class BaseModel(Base):
     __abstract__ = True
 
     @classmethod
-    async def get(cls, session: Session, **kwargs):
-        return session.query(cls).filter_by(**kwargs)
+    async def get(cls, session: Session, *args, **kwargs):
+        if args:
+            query = session.query(*args)
+        else:
+            query = session.query(cls)
+
+        if kwargs:
+            query = query.filter_by(**kwargs)
+
+        return query
 
     @classmethod
     async def add(cls, session: Session, **kwargs):
@@ -73,6 +81,10 @@ class BaseModel(Base):
         query = session.query(cls).filter_by(**filter_by)
         query.update(update_values)
         session.commit()
+
+    @classmethod
+    async def get_all(cls, session: Session, *args):
+        return session.query(cls, *args).all()
 
 
 # class UserShop(BaseModel):

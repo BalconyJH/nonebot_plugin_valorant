@@ -48,8 +48,8 @@ class DB:
         初始化数据库。创建数据库和表格。
         """
         try:
-            await cls._create_tables()
             await cls._create_database()
+            await cls._create_tables()
         except SQLAlchemyError as e:
             raise DatabaseError(f"数据库初始化失败{e}") from e
 
@@ -202,8 +202,8 @@ class DB:
             logger.info("版本信息已刷新")
 
     @classmethod
-    async def init_version(cls, **kwargs):
-        await Version.add(session, **kwargs)
+    async def init_version(cls, filter_by: dict = None, update_value: dict = None):
+        await Version.update(session, filter_by, update_value)
 
     # @classmethod
     # async def update_user_store_offer(cls, **kwargs: object):
@@ -237,6 +237,18 @@ class DB:
         - skins: 武器皮肤信息。
         """
         return (await WeaponSkins.get(session, uuid=uuid)).first()
+
+    @classmethod
+    async def get_all_skins_icon(cls):
+        """
+        获取所有武器皮肤的图标。
+
+        返回值:
+        - skins: 武器皮肤图标。
+        """
+        return (
+            await WeaponSkins.get(session, WeaponSkins.uuid, WeaponSkins.icon)
+        ).all()
 
 
 get_driver().on_shutdown(DB.close)
