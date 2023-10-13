@@ -326,7 +326,10 @@ class Auth:
 
         await session.close()
 
-        access_token, token_id = self._extract_tokens_from_uri(data)
+        try:
+            access_token, token_id = self._extract_tokens_from_uri(data)
+        except IndexError:
+            raise AuthenticationError(message_translator("errors.AUTH.COOKIES_EXPIRED"))
         entitlements_token = await self.get_entitlements_token(access_token)
         expiry_token = int(datetime.timestamp(datetime.now() + timedelta(minutes=59)))
 
