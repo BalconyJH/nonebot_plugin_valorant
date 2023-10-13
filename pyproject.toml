@@ -16,9 +16,10 @@ dependencies = [
     "nonebot-adapter-onebot>=2.2.4",
     "cryptography>=41.0.3",
     "setuptools>=68.1.0",
-    "nonebot-plugin-htmlrender>=0.2.1",
+    "nonebot-plugin-htmlrender>=0.2.2",
     "aiohttp>=3.8.5",
     "pillow>=10.0.1",
+    "asyncmy>=0.2.8",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -35,19 +36,15 @@ adapters = [
 ]
 plugins = ["nonebot_plugin_sentry", "nonebot_plugin_htmlrender"]
 plugin_dirs = ["nonebot_plugin_valorant/plugins"]
-builtin_plugins = []
+builtin_plugins = ["echo"]
 [tool.pdm.dev-dependencies]
 dev = [
-    "nonebot-plugin-htmlrender>=0.2.1",
     "isort>=5.12.0",
     "black>=23.7.0",
     "pre-commit>=3.3.3",
     "flake8>=6.1.0",
-    "nonebug>=0.3.5",
-    "pytest-asyncio>=0.21.1",
-    "sqlmodel>=0.0.8",
     "nonebot-plugin-sentry>=0.4.1",
-    "nb-cli-plugin-webui>=0.1.1",
+    "viztracer>=0.16.0",
 ]
 
 [tool.black]
