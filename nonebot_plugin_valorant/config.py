@@ -4,6 +4,11 @@ from typing import List, Union
 from nonebot import get_driver
 from pydantic import Extra, BaseSettings
 
+__all__ = (
+    "Config",
+    "plugin_config",
+)
+
 
 class Config(BaseSettings, extra=Extra.ignore):
     """
@@ -29,5 +34,4 @@ class Config(BaseSettings, extra=Extra.ignore):
     resource_path = Path(__file__).parent / "resources" / "image" / "skin"
 
 
-global_config = get_driver().config
-plugin_config = Config.parse_obj(global_config)
+plugin_config = Config.parse_obj(get_driver().config)

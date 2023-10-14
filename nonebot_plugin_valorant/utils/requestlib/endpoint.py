@@ -2,7 +2,6 @@ from typing import Any, Dict, Mapping, Optional
 
 import urllib3
 
-from nonebot_plugin_valorant.utils import message_translator
 from nonebot_plugin_valorant.utils.requestlib.auth import AuthCredentials
 from nonebot_plugin_valorant.utils.requestlib.client import get_client_version
 from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
