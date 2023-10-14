@@ -1,10 +1,14 @@
 import io
+import time
+import asyncio
 from pathlib import Path
 from typing import Union
 
 import requests
+from rich import print
 from nonebot import on_command
 from pydantic import BaseModel
+from viztracer import VizTracer
 from nonebot.params import T_State
 from nonebot.permission import SUPERUSER
 from nonebot_plugin_htmlrender import template_to_pic
@@ -16,11 +20,17 @@ from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEve
 
 from nonebot_plugin_valorant import plugin_config
 from nonebot_plugin_valorant.database.db import DB
-from nonebot_plugin_valorant.utils import user_login_status
 from nonebot_plugin_valorant.utils.cache import cache_store
 from nonebot_plugin_valorant.utils.requestlib.auth import Auth
 from nonebot_plugin_valorant.utils.translator import Translator
-from nonebot_plugin_valorant.utils.render.storefront_skinpanel import parse_user_info
+from nonebot_plugin_valorant.resources.image.skin import download_images_from_db
+from nonebot_plugin_valorant.utils import AuthenticationError, user_login_status
+from nonebot_plugin_valorant.utils.parsinglib.endpoint_parsing import SkinsPanel
+from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
+from nonebot_plugin_valorant.utils.render.storefront_skinpanel import (
+    parse_user_info,
+    render_skin_panel,
+)
 
 # require("nonebot_plugin_htmlrender")
 # from nonebot_plugin_htmlrender import (
@@ -33,9 +43,7 @@ from nonebot_plugin_valorant.utils.render.storefront_skinpanel import parse_user
 
 
 store = on_command("store", aliases={"商店"}, priority=5, block=True)
-force_refresh = on_command(
-    "force_refresh", aliases={"强制刷新"}, priority=5, block=True, permission=SUPERUSER
-)
+test = on_command("test", aliases={"test"}, priority=5, block=True)
 auth = Auth()
 
 
@@ -43,68 +51,43 @@ store.handle()
 store.__doc__ = """商店"""
 
 
+async def cache_skins_store_into_db(
+    user_data: PlayerInformation, skin_data: SkinsPanel
+) -> None:
+    """缓存商店皮肤信息到数据库"""
+    await DB.cache_player_skins_store(
+        uuid=user_data.puuid,
+        offer_1=skin_data.skin1.dict(),
+        offer_2=skin_data.skin2.dict(),
+        offer_3=skin_data.skin3.dict(),
+        offer_4=skin_data.skin4.dict(),
+        duration=skin_data.duration,
+    )
+
+
 @store.handle()
 async def _(
     event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
     state: T_State,
 ):
-    data = await parse_user_info(event.user_id)
-    print(data)
-    from pathlib import Path
-
-    template_path = str(Path(__file__).parent)
-    template_name = "test.html"
-    images = [
-        {
-            "src": f"./skins/{data.skin1.uuid}.png",
-            "name": f"{data.skin1.name}",
-            "cost": f"V{data.skin1.cost}",
-        },
-        {
-            "src": f"./skins/{data.skin2.uuid}.png",
-            "name": f"{data.skin2.name}",
-            "cost": f"V{data.skin2.cost}",
-        },
-        {
-            "src": f"./skins/{data.skin3.uuid}.png",
-            "name": f"{data.skin3.name}",
-            "cost": f"V{data.skin3.cost}",
-        },
-        {
-            "src": f"./skins/{data.skin4.uuid}.png",
-            "name": f"{data.skin4.name}",
-            "cost": f"V{data.skin4.cost}",
-        },
-    ]
-    # 设置模板
-    # 模板中本地资源地址需要相对于 base_url 或使用绝对路径
-    pic = await template_to_pic(
-        template_path=template_path,
-        template_name=template_name,
-        templates={"images": images},
-        pages={
-            "viewport": {"width": 600, "height": 700},
-            "base_url": f"file://{template_path}",
-        },
-        wait=2,
-    )
-
-    msg_builder = MessageFactory(Image(pic))
-    await msg_builder.send()
-    await store.finish()
+    # tracer = VizTracer()
+    # tracer.start()
+    try:
+        skin_data, player_info = await parse_user_info(event.user_id)
+        await cache_skins_store_into_db(player_info, skin_data)
+        pic = await render_skin_panel(skin_data)
+        msg_builder = MessageFactory(Image(pic))
+        await msg_builder.send()
+        await store.finish()
+    except AuthenticationError as e:
+        await store.finish(f"登录信息失效{e},  请重新使用[/login]登录")
+    # tracer.stop()
+    # tracer.save("test.html")
 
 
-@force_refresh.handle()
-async def _force_refresh(
+@test.handle()
+async def _test(
     event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
     state: T_State,
 ):
-    print("force_refresh")
-    # uuid = "43361d49-4331-ee30-e356-0f925e6e17b9"
-    # user = await DB.get_user(str(event.user_id))
-    # data = (await DB.get_skin(uuid)).names
-    #
-    # print(data, type(data))
-    # print(repr(plugin_config.language_type))
-    # print(plugin_config.language_type in data.keys())
-    # print(data.get(plugin_config.language_type))
+    await download_images_from_db()

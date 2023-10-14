@@ -38,7 +38,7 @@ async def parse_user_info(qq_uid: str):
         try:
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
             print(resp)
-            return await skin_panel_parser(resp)
+            return await skin_panel_parser(resp), player_info
         except RequestError as error:
             data = await Auth().redeem_cookies(auth_info.cookie)
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
@@ -52,7 +52,7 @@ async def parse_user_info(qq_uid: str):
                     "cookie": data.cookie,
                 },
             )
-            return await skin_panel_parser(resp)
+            return await skin_panel_parser(resp), player_info
     else:
         await DB.update_user(
             filter_by={"qq_uid": qq_uid},
@@ -66,7 +66,7 @@ async def parse_user_info(qq_uid: str):
         )
         auth_info = copy.copy(data)
         resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
-        return await skin_panel_parser(resp)
+        return await skin_panel_parser(resp), player_info
 
 
 async def render_skin_panel(data: SkinsPanel) -> bytes:

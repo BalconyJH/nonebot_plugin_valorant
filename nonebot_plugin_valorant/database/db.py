@@ -16,6 +16,7 @@ from nonebot_plugin_valorant.database.models import (  # UserShop,
     User,
     Version,
     BaseModel,
+    SkinsStore,
     WeaponSkins,
 )
 
@@ -249,6 +250,16 @@ class DB:
         return (
             await WeaponSkins.get(session, WeaponSkins.uuid, WeaponSkins.icon)
         ).all()
+
+    @classmethod
+    async def cache_player_skins_store(cls, **kwargs):
+        """
+        缓存用户商店信息。
+
+        参数:
+        - kwargs: 包含用户商店信息的关键字参数。
+        """
+        await SkinsStore.add(session, **kwargs)
 
 
 get_driver().on_shutdown(DB.close)

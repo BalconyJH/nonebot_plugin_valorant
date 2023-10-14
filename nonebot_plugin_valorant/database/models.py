@@ -155,19 +155,19 @@ class SkinsStore(BaseModel):
 
     Attributes:
         uuid (str): Player UUID.
-        offer_id_1 (str): Currency offer ID 1.
-        offer_id_2 (str): Currency offer ID 2.
-        offer_id_3 (str): Currency offer ID 3.
-        offer_id_4 (str): Currency offer ID 4.
+        offer_1 (str): Currency offer ID 1.
+        offer_2 (str): Currency offer ID 2.
+        offer_3 (str): Currency offer ID 3.
+        offer_4 (str): Currency offer ID 4.
     """
 
     __tablename__ = "skins_store"
 
     uuid = Column(VARCHAR(255), primary_key=True)
-    offer_id_1 = Column(VARCHAR(255))
-    offer_id_2 = Column(VARCHAR(255))
-    offer_id_3 = Column(VARCHAR(255))
-    offer_id_4 = Column(VARCHAR(255))
+    offer_1 = Column(JSON)
+    offer_2 = Column(JSON)
+    offer_3 = Column(JSON)
+    offer_4 = Column(JSON)
     duration = Column(BIGINT)
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
