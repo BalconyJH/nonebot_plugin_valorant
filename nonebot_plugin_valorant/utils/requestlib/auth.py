@@ -2,7 +2,6 @@ import re
 import ssl
 import json
 from datetime import datetime, timedelta
-from urllib.parse import parse_qs, urlparse
 from typing import Any, Dict, Tuple, Optional
 
 import aiohttp as aiohttp
@@ -10,7 +9,6 @@ import urllib3.exceptions
 from pydantic import BaseModel
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.utils import message_translator
 from nonebot_plugin_valorant.utils.errors import (
     ResponseError,
     DataParseError,
@@ -148,7 +146,7 @@ class Auth:
         # 准备授权请求的 cookies。
         cookies = {"cookie": {}}
         if response.status == 403:
-            raise AuthenticationError(message_translator("errors.AUTH.BLOCKED"))
+            raise AuthenticationError("errors.AUTH.BLOCKED")
         for cookie in response.cookies.items():
             cookies["cookie"][cookie[0]] = str(cookie).split("=")[1].split(";")[0]
 
@@ -174,9 +172,10 @@ class Auth:
 
         # 关闭会话。
         await session.close()
+
         # 请求过多返回"error" = "rate_limited"
         if data.get("error") == "rate_limited":
-            raise AuthenticationError(message_translator("errors.AUTH.RATELIMIT"))
+            raise AuthenticationError("errors.AUTH.RATELIMIT")
         # 处理身份验证响应。
         if data["type"] == "response":
             # 如果身份验证成功，则从响应中提取令牌。
@@ -200,7 +199,7 @@ class Auth:
             # 2FA 验证流程。
             if response.status == 429:
                 # 短时间内大量重试触发RATELIMIT
-                raise AuthenticationError(message_translator("errors.AUTH.RATELIMIT"))
+                raise AuthenticationError("errors.AUTH.RATELIMIT")
 
             method = data["multifactor"]["method"]
             if method == "email":
@@ -212,14 +211,10 @@ class Auth:
                 }
             else:
                 # 如果身份验证需要基于不支持的 2FA 方法，则引发 AuthenticationError。
-                raise AuthenticationError(
-                    message_translator("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
-                )
+                raise AuthenticationError("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
         else:
             # 如果身份验证失败，则引发 AuthenticationError。
-            raise AuthenticationError(
-                message_translator("errors.AUTH.INVALID_PASSWORD")
-            )
+            raise AuthenticationError("errors.AUTH.INVALID_PASSWORD")
 
     async def auth_by_code(self, code: str, cookies: Dict) -> Dict[str, Any]:
         """用于输入 2FA 验证码的方法。
@@ -250,7 +245,6 @@ class Auth:
         ) as r:
             data = await r.json()
 
-        # 关闭会话。
         await session.close()
 
         # 如果成功输入 2FA 验证码，则返回包含身份验证信息的字典。
@@ -272,7 +266,7 @@ class Auth:
                     "expiry_token": int(expiry_token),
                 },
             }
-        raise AuthenticationError(message_translator("errors.AUTH.2FA_INVALID_CODE"))
+        raise AuthenticationError("errors.AUTH.2FA_INVALID_CODE")
 
     async def redeem_cookies(self, cookies: Dict) -> AuthCredentials:
         """
@@ -309,12 +303,16 @@ class Auth:
         ) as r:
             data = await r.text()
 
-        # 如果 HTTP 状态码不为 303 或者响应的 Location 以 /auth 开头则说明 cookies 过期，抛出 AuthenticationError
+        await session.close()
+
         if r.status != 303:
-            raise AuthenticationError(message_translator("errors.AUTH.COOKIES_EXPIRED"))
+            raise AuthenticationError("errors.AUTH.COOKIES_EXPIRED")
 
         if r.headers["Location"].startswith("/auth"):
-            raise AuthenticationError(message_translator("errors.AUTH.COOKIES_EXPIRED"))
+            raise AuthenticationError("errors.AUTH.COOKIES_EXPIRED")
+
+        if r.headers["Location"].startswith("https://authenticate.riotgames.com"):
+            raise AuthenticationError("errors.AUTH.COOKIES_EXPIRED")
 
         # 复制原有 cookies
         old_cookie = cookies.copy()
@@ -328,8 +326,8 @@ class Auth:
 
         try:
             access_token, token_id = self._extract_tokens_from_uri(data)
-        except IndexError:
-            raise AuthenticationError(message_translator("errors.AUTH.COOKIES_EXPIRED"))
+        except IndexError as error:
+            raise AuthenticationError("errors.AUTH.COOKIES_EXPIRED") from error
         entitlements_token = await self.get_entitlements_token(access_token)
         expiry_token = int(datetime.timestamp(datetime.now() + timedelta(minutes=59)))
 
@@ -375,9 +373,7 @@ class Auth:
                 "headers": headers,
                 "player_name": player_name,
             }
-        raise AuthenticationError(
-            message_translator("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
-        )
+        raise AuthenticationError("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
 
     async def login_with_cookie(self, cookies: Dict) -> AuthCredentials:
         """
@@ -420,7 +416,7 @@ class Auth:
 
         # 如果请求返回的状态码不是 303，则登录失败
         if r.status != 303:
-            raise AuthenticationError(message_translator("commands.cookies.FAILED"))
+            raise AuthenticationError("commands.cookies.FAILED")
 
         await session.close()
 
@@ -537,16 +533,14 @@ class Auth:
                 json={},
             ) as r:
                 data = await r.json()
-        except aiohttp.ClientResponseError as e:
-            raise ResponseError(message_translator("errors.API.REQUEST_FAILED")) from e
+        except aiohttp.ClientResponseError as error:
+            raise ResponseError("errors.API.REQUEST_FAILED") from error
 
         await session.close()
         try:
             return data["entitlements_token"]
-        except KeyError as e:
-            raise AuthenticationError(
-                message_translator("errors.DATA.PARSING_ERROR")
-            ) from e
+        except KeyError as error:
+            raise AuthenticationError("errors.DATA.PARSING_ERROR") from error
 
     @staticmethod
     async def get_userinfo(access_token: str) -> Tuple[str, str, str]:
@@ -580,10 +574,8 @@ class Auth:
             puuid = data["sub"]
             name = data["acct"]["game_name"]
             tag = data["acct"]["tag_line"]
-        except KeyError as e:
-            raise AuthenticationError(
-                message_translator("errors.AUTH.NO_NAME_TAG")
-            ) from e
+        except KeyError as error:
+            raise AuthenticationError("errors.AUTH.NO_NAME_TAG") from error
         else:
             return puuid, name, tag
 
@@ -622,10 +614,8 @@ class Auth:
 
         try:
             region = data["affinities"]["live"]
-        except KeyError as e:
-            raise AuthenticationError(
-                message_translator("errors.AUTH.UNSUPPORTED_REGION")
-            ) from e
+        except KeyError as error:
+            raise AuthenticationError("errors.AUTH.UNSUPPORTED_REGION") from error
         else:
             return region
 
