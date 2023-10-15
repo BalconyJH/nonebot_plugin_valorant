@@ -35,7 +35,7 @@ async def login_db(
             )
             puuid, name, tag = await auth.get_userinfo(result["data"]["access_token"])
             await DB.login(
-                qq_uid=str(event.user_id),
+                qq_uid=str(event.get_user_id()),
                 username=f"{name}#{tag}",
                 cookie=result["data"]["cookie"],
                 access_token=result["data"]["access_token"],
@@ -45,7 +45,7 @@ async def login_db(
                 emt=entitlements_token,
                 puuid=puuid,
             )
-            logger.info(f"{name}#{tag}登录成功, QQ:{event.user_id}")
+            logger.info(f"{name}#{tag}登录成功, QQ:{event.get_user_id()}")
             await login.finish(f"{name}#{tag}登录成功")
         except AuthenticationError as e:
             await login.finish(f"登录失败{e}")
@@ -53,7 +53,7 @@ async def login_db(
 
 @login.handle()
 async def _(event: Union[PrivateMessageEventV11, PrivateMessageEventV12]):
-    if await user_login_status(str(event.user_id)) is True:
+    if await user_login_status(str(event.get_user_id())) is True:
         await login.finish("您已登录,如需更换账号请先注销")
 
 
