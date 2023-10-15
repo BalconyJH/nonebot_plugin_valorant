@@ -37,9 +37,8 @@ async def parse_user_info(qq_uid: str):
     if data is None:
         try:
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
-            print(resp)
             return await skin_panel_parser(resp), player_info
-        except RequestError as error:
+        except RequestError:
             data = await Auth().redeem_cookies(auth_info.cookie)
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
             await DB.update_user(
@@ -70,7 +69,6 @@ async def parse_user_info(qq_uid: str):
 
 
 async def render_skin_panel(data: SkinsPanel) -> bytes:
-    print(data)
     start_time = time.time()
     template_path = str(Path(__file__).parent / "templates")
     template_name = "storefront_skinpanel.html"
