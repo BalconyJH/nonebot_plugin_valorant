@@ -43,7 +43,7 @@ class Translator:
             if key in data:
                 data = data[key]
             else:
-                raise ValueError
+                raise ValueError(f"找不到键{key_sequence}的值")
 
         return data
 

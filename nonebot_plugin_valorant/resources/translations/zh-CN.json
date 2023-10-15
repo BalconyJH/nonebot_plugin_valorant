@@ -5,24 +5,24 @@
       "NAME": "登录",
       "DESCRIPTION": "使用您的Riot 账户登录",
       "DESCRIBE": {
-        "username": "请输入账号名！",
-        "password": "请输入登录密码！"
+        "username": "请输入账号名",
+        "password": "请输入登录密码"
       },
       "SUCCESS": "登录成功",
-      "FAILED": "登录失败，请再试一次"
+      "FAILED": "登录失败 请再试一次"
     },
     "logout": {
       "NAME": "登出",
       "DESCRIPTION": "登出并从数据库中删除您的账户",
-      "SUCCESS": "成功登出！",
-      "FAILED": "登出失败，请再试一次！"
+      "SUCCESS": "成功登出",
+      "FAILED": "登出失败 请再试一次"
     },
     "store": {
       "NAME": "商店",
       "DESCRIPTION": "在您的账户中显示您的每日商店",
       "DESCRIBE": {
-        "username": "请输入账号名！(暂时登录)",
-        "password": "请输入登录密码！(暂时登录)"
+        "username": "请输入账号名(暂时登录)",
+        "password": "请输入登录密码(暂时登录)"
       },
       "RESPONSE": "**{username}** 的每日商店 \n剩余 {duration}"
     },
@@ -74,9 +74,9 @@
     },
     "notify_list": {
       "NAME": "列表",
-      "DESCRIPTION": "查看您已设置的皮肤通知。",
+      "DESCRIPTION": "查看您已设置的皮肤通知",
       "TITLE": "您的通知列表",
-      "DONT_HAVE_NOTIFY": "您没有任何的通知。",
+      "DONT_HAVE_NOTIFY": "您没有任何的通知",
       "REMOVE_NOTIFY": "点击按钮从通知中移除"
     },
     "notify_mode": {
@@ -94,17 +94,17 @@
       "NOTIFY_IS_WORKING": "通知正常运作",
       "NOTIFY_TURN_OFF": "您没有开启通知模式",
       "EMPTY_LIST": "列表为空",
-      "BOT_MISSING_PERM": "**我没有权限在此频道发送通知！** \n请检查机器人的权限，确保机器人能`查看频道`, `发送消息`, `嵌入链接` 和 `使用外部表情符号'。 然后在此频道再尝试\"/notificate test\"。",
-      "FAILED_SEND_NOTIFY": "发送通知失败，请重试",
+      "BOT_MISSING_PERM": "**我没有权限在此频道发送通知** \n请检查机器人的权限 确保机器人能`查看频道`, `发送消息`, `嵌入链接` 和 `使用外部表情符号' 然后在此频道再尝试\"/notificate test\"",
+      "FAILED_SEND_NOTIFY": "发送通知失败 请重试",
       "PLEASE_ALLOW_DM_MESSAGE": "请在您的隐私设置中允许 DM 消息"
     },
     "notify_send": {
-      "RESPONSE_SPECIFIED": "{emoji} **{name}** 在您的每日商店里！\n剩余 {duration}",
+      "RESPONSE_SPECIFIED": "{emoji} **{name}** 在您的每日商店里\n剩余 {duration}",
       "RESPONSE_ALL": "**{username}** 的每日商店| 剩余 {duration}"
     },
     "notify_channel": {
       "NAME": "频道",
-      "DESCRIPTION": "更改通知模式。",
+      "DESCRIPTION": "更改通知模式",
       "DESCRIBE": {
         "channel": "选择您想要更改的通知频道"
       },
@@ -117,15 +117,15 @@
         "bundle": "您想要查看的皮肤系列!"
       },
       "TITLE": "收藏",
-      "DROPDOWN_CHOICE_TITLE": "选择一个皮肤系列：",
+      "DROPDOWN_CHOICE_TITLE": "选择一个皮肤系列",
       "NOT_FOUND_BUNDLE": "找不到任何皮肤系列"
     },
     "bundles": {
       "NAME": "皮肤系列",
       "DESCRIPTION": "查看目前主打商品的皮肤系列",
       "TITLE": "主打商品: {bundle} 系列",
-      "DURATION": "剩余时间: {duration}",
-      "DROPDOWN_CHOICE_TITLE": "选择一个皮肤系列："
+      "DURATION": "剩余时间",
+      "DROPDOWN_CHOICE_TITLE": "选择一个皮肤系列"
     },
     "debug": {
       "NAME": "调试",
@@ -154,28 +154,28 @@
     "UNKNOWN_ERROR": "发生了未知的错误",
     "AUTH": {
       "UNSUPPORTED_REGION": "暂不支持的地区",
-      "INVALID_PASSWORD": "您的用户名或密码可能不正确！",
-      "RATELIMIT": "请稍等片刻，然后再试一次。",
-      "COOKIES_EXPIRED": "Cookies 已过期，请再次使用`/login` 登录！",
-      "NO_NAME_TAG": "此用户尚未创建一个名称或标签。",
-      "REGION_NOT_FOUND": "发生未知的错误，请再试一次。",
-      "LOGIN_COOKIE_FAILED": "使用 cookie 登录失败。",
-      "INPUT_2FA_CODE": "请输入两步验证代码！",
-      "2FA_ENABLE": "您的账号启用了两步验证！",
+      "INVALID_PASSWORD": "您的用户名或密码可能不正确",
+      "RATELIMIT": "请稍等片刻 然后再试一次",
+      "COOKIES_EXPIRED": "Cookies 已过期 请再次使用[/login]登录",
+      "NO_NAME_TAG": "此用户尚未创建一个名称或标签",
+      "REGION_NOT_FOUND": "发生未知的错误 请再试一次",
+      "LOGIN_COOKIE_FAILED": "使用 cookie 登录失败",
+      "INPUT_2FA_CODE": "请输入两步验证代码",
+      "2FA_ENABLE": "您的账号启用了两步验证",
       "2FA_TO_EMAIL": "Riot发送了一个代码",
       "2FA_INVALID_CODE": "2FA 验证码无效",
       "TEMP_LOGIN_NOT_SUPPORT_2FA": "暂不支持的2FA登录",
       "BLOCKED": "请求遭到RIOT封禁"
     },
     "DATABASE": {
-      "NOT_LOGIN": "您还没有登录！请使用`/login`登录！",
-      "LOGIN_ERROR": "登录失败，请再试一次!",
-      "LOGOUT_ERROR": "如果您未登录，我无法为您登出！",
-      "LOGOUT_EXCEPT": "登出账户发生错误。"
+      "NOT_LOGIN": "您还没有登录 请使用[/login]登录",
+      "LOGIN_ERROR": "登录失败 请再试一次",
+      "LOGOUT_ERROR": "你登陆了吗",
+      "LOGOUT_EXCEPT": "登出账户发生错误"
     },
     "API": {
       "FAILED_ACTIVE": "初始化 API 失败",
-      "REQUEST_FAILED": "API 响应失败！"
+      "REQUEST_FAILED": "API 响应失败"
     },
     "DATA": {
       "NO_DATA": "没有数据",
