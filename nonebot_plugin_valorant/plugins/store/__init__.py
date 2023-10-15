@@ -1,46 +1,20 @@
-import io
-import time
-import asyncio
-from pathlib import Path
 from typing import Union
 
-import requests
-from rich import print
 from nonebot import on_command
-from pydantic import BaseModel
-from viztracer import VizTracer
 from nonebot.params import T_State
-from nonebot.permission import SUPERUSER
-from nonebot_plugin_htmlrender import template_to_pic
-from nonebot_plugin_saa import Text, Image, MessageFactory
+from nonebot_plugin_saa import Image, MessageFactory
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent as PrivateMessageEventV11
-
-# from nonebot.adapters.onebot.v12 import Bot, MessageEvent, MessageSegment
 from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEventV12
 
-from nonebot_plugin_valorant import plugin_config
 from nonebot_plugin_valorant.database.db import DB
-from nonebot_plugin_valorant.utils.cache import cache_store
 from nonebot_plugin_valorant.utils.requestlib.auth import Auth
-from nonebot_plugin_valorant.utils.translator import Translator
-from nonebot_plugin_valorant.resources.image.skin import download_images_from_db
-from nonebot_plugin_valorant.utils import AuthenticationError, user_login_status
 from nonebot_plugin_valorant.utils.parsinglib.endpoint_parsing import SkinsPanel
+from nonebot_plugin_valorant.utils import AuthenticationError, message_translator
 from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
 from nonebot_plugin_valorant.utils.render.storefront_skinpanel import (
     parse_user_info,
     render_skin_panel,
 )
-
-# require("nonebot_plugin_htmlrender")
-# from nonebot_plugin_htmlrender import (
-#     get_new_page,
-# )  # noqa: E402
-
-# html2pic = on_command("html2pic", aliases={"网页截图"}, priority=5, block=True)
-
-# class SkinStore(BaseModel):
-
 
 store = on_command("store", aliases={"商店"}, priority=5, block=True)
 test = on_command("test", aliases={"test"}, priority=5, block=True)
@@ -65,6 +39,14 @@ async def cache_skins_store_into_db(
     )
 
 
+async def invalid_login_credentials(
+    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
+    state: T_State,
+):
+    await DB.logout(event.get_user_id())
+    await DB.delete_player_skins_store(event.get_user_id())
+
+
 @store.handle()
 async def _(
     event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
@@ -73,14 +55,15 @@ async def _(
     # tracer = VizTracer()
     # tracer.start()
     try:
-        skin_data, player_info = await parse_user_info(event.user_id)
+        skin_data, player_info = await parse_user_info(event.get_user_id())
         await cache_skins_store_into_db(player_info, skin_data)
         pic = await render_skin_panel(skin_data)
         msg_builder = MessageFactory(Image(pic))
         await msg_builder.send()
         await store.finish()
     except AuthenticationError as e:
-        await store.finish(f"登录信息失效{e},  请重新使用[/login]登录")
+        await invalid_login_credentials(event, state)
+        await store.finish(message_translator(f"{e}"))
     # tracer.stop()
     # tracer.save("test.html")
 
@@ -90,4 +73,4 @@ async def _test(
     event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
     state: T_State,
 ):
-    await download_images_from_db()
+    pass

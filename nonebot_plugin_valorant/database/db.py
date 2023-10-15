@@ -4,7 +4,6 @@ from nonebot import get_driver
 from nonebot.log import logger
 from sqlalchemy import create_engine
 from cryptography.fernet import Fernet
-from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_database, database_exists
@@ -116,8 +115,7 @@ class DB:
         返回值:
         - user: 用户信息(Dict)。
         """
-        user = await User.get(session, qq_uid=qq_uid)
-        return user.first()
+        return (await User.get(session, qq_uid=qq_uid)).first()
 
     @classmethod
     async def update_user(cls, filter_by: dict, update_values: dict):
@@ -203,7 +201,7 @@ class DB:
             logger.info("版本信息已刷新")
 
     @classmethod
-    async def init_version(cls, filter_by: dict = None, update_value: dict = None):
+    async def init_version(cls, filter_by: dict, update_value: dict):
         await Version.update(session, filter_by, update_value)
 
     # @classmethod
@@ -260,6 +258,16 @@ class DB:
         - kwargs: 包含用户商店信息的关键字参数。
         """
         await SkinsStore.add(session, **kwargs)
+
+    @classmethod
+    async def delete_player_skins_store(cls, qq_uid: str):
+        """
+        删除用户商店信息。
+
+        参数:
+        - qq_uid: 用户的 QQ UID。
+        """
+        await SkinsStore.delete(session, qq_uid=qq_uid)
 
 
 get_driver().on_shutdown(DB.close)
