@@ -1,5 +1,15 @@
 from sqlalchemy.orm import Mapped, Session, relationship, declarative_base
-from sqlalchemy import JSON, BIGINT, VARCHAR, Column, Boolean, DateTime, func
+from sqlalchemy import (
+    JSON,
+    BIGINT,
+    INTEGER,
+    VARCHAR,
+    Column,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    func,
+)
 
 Base = declarative_base()
 
@@ -163,13 +173,18 @@ class SkinsStore(BaseModel):
 
     __tablename__ = "skins_store"
 
-    uuid = Column(VARCHAR(255), primary_key=True)
+    puuid = Column(VARCHAR(255), primary_key=True)
     offer_1 = Column(JSON)
     offer_2 = Column(JSON)
     offer_3 = Column(JSON)
     offer_4 = Column(JSON)
     duration = Column(BIGINT)
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="skins_store")
+
+    def __repr__(self):
+        return f"<SkinsStore(puuid='{self.puuid}', offer_1='{self.offer_1}', offer_2='{self.offer_2}', offer_3='{self.offer_3}', offer_4='{self.offer_4}', duration='{self.duration}', timestamp='{self.timestamp}')>"
 
 
 class BonusStore(BaseModel):
@@ -219,7 +234,7 @@ class User(BaseModel):
     __tablename__ = "user"
 
     qq_uid = Column(VARCHAR(30), nullable=False, primary_key=True)
-    puuid = Column(VARCHAR(255))
+    puuid = Column(VARCHAR(255), ForeignKey("skins_store.puuid"))
     cookie = Column(JSON)
     access_token = Column(VARCHAR(2000))
     token_id = Column(VARCHAR(2000))
@@ -228,6 +243,8 @@ class User(BaseModel):
     username = Column(VARCHAR(255))
     region = Column(VARCHAR(255))
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    skins_store = relationship("SkinsStore", back_populates="user")
 
     def __repr__(self):
         return f"<User(puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', emt='{self.emt}', username='{self.username}', region='{self.region}', qq_uid='{self.qq_uid}', timestamp='{self.timestamp}')>"
