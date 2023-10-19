@@ -92,41 +92,9 @@ class BaseModel(Base):
         query.update(update_values)
         session.commit()
 
-    @classmethod
-    async def get_all(cls, session: Session, *args):
-        return session.query(cls, *args).all()
-
-
-# class UserShop(BaseModel):
-#     """
-#     This class represents a user's shop in the application.
-#
-#     Attributes:
-#         uuid (str): The unique identifier of the user shop.
-#         bonus_store (Relationship["BonusStore"]): The relationship between the user shop and associated bonus store.
-#         skins_store (Relationship["SkinsStore"]): The relationship between the user shop and associated skins store.
-#         accessory_store (Relationship["AccessoryStore"]): The relationship between the user shop and associated accessory store.
-#
-#     """
-#
-#     __tablename__ = "user_shop"
-#
-#     uuid = Column(VARCHAR(255), primary_key=True)
-#     bonus_store: relationship(
-#         "BonusStore",
-#         backref="user_shop",
-#         primaryjoin="UserShop.uuid == foreign(BonusStore.uuid)",
-#     )
-#     skins_store: relationship(
-#         "SkinsStore",
-#         backref="user_shop",
-#         primaryjoin="UserShop.uuid == foreign(SkinsStore.uuid)",
-#     )
-#     accessory_store: relationship(
-#         "AccessoryStore",
-#         backref="user_shop",
-#         primaryjoin="UserShop.uuid == foreign(AccessoryStore.uuid)",
-#     )
+    # @classmethod
+    # async def get_all(cls, session: Session, *args):
+    #     return session.query(cls, *args).all()
 
 
 # class FeaturedBundle:
@@ -164,20 +132,22 @@ class SkinsStore(BaseModel):
     This class represents a skins store entry in the database.
 
     Attributes:
-        uuid (str): Player UUID.
+        puuid (str): Player UUID.
         offer_1 (str): Currency offer ID 1.
         offer_2 (str): Currency offer ID 2.
         offer_3 (str): Currency offer ID 3.
         offer_4 (str): Currency offer ID 4.
+        duration (inT): Duration of the store.
+        timestamp (datetime): Timestamp of the store.
     """
 
     __tablename__ = "skins_store"
 
-    puuid = Column(VARCHAR(255), primary_key=True)
-    offer_1 = Column(JSON)
-    offer_2 = Column(JSON)
-    offer_3 = Column(JSON)
-    offer_4 = Column(JSON)
+    puuid = Column(VARCHAR(36), primary_key=True)
+    offer_1 = Column(VARCHAR(36))
+    offer_2 = Column(VARCHAR(36))
+    offer_3 = Column(VARCHAR(36))
+    offer_4 = Column(VARCHAR(36))
     duration = Column(BIGINT)
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
@@ -214,27 +184,15 @@ class BonusStore(BaseModel):
 
 
 class User(BaseModel):
-    """
-    This model represents a user and contains various information about the user, such as unique identifier, cookie, access token, etc.
-
-    Attributes:
-        qq_uid (str): The QQ UID of the user.
-        puuid (str): The PUUID of the user.
-        cookie (str): The cookie of the user.
-        access_token (str): The access token of the user.
-        token_id (str): The token ID of the user.
-        expiry_token (str): The expiry time of the token.
-        emt (str): The entitlements token of the user.
-        username (str): The username of the user.
-        region (str): The region of the user.
-        timestamp (str): The timestamp when the data was revised.
-
-    """
+    """ """
 
     __tablename__ = "user"
 
-    qq_uid = Column(VARCHAR(30), nullable=False, primary_key=True)
-    puuid = Column(VARCHAR(255), ForeignKey("skins_store.puuid"))
+    # 平台用户唯一标识
+    qq_uid = Column(VARCHAR(30), nullable=False, unique=True)
+
+    # Riot用户信息
+    puuid = Column(VARCHAR(36), ForeignKey("skins_store.puuid"), primary_key=True)
     cookie = Column(JSON)
     access_token = Column(VARCHAR(2000))
     token_id = Column(VARCHAR(2000))
@@ -247,7 +205,7 @@ class User(BaseModel):
     skins_store = relationship("SkinsStore", back_populates="user")
 
     def __repr__(self):
-        return f"<User(puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', emt='{self.emt}', username='{self.username}', region='{self.region}', qq_uid='{self.qq_uid}', timestamp='{self.timestamp}')>"
+        return f"<User(qq_uid='{self.qq_uid}', puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', expiry_token='{self.expiry_token}', emt='{self.emt}', username='{self.username}', region='{self.region}', timestamp='{self.timestamp}')>"
 
 
 class WeaponSkins(BaseModel):
