@@ -6,17 +6,18 @@ authors = [
     {name = "BalconyJH", email = "balconyjh@gmail.com"},
 ]
 dependencies = [
-    "nonebot2[fastapi]>=2.0.1",
+    "uvicorn[standard]>=0.23.2",
+    "fastapi>=0.104.0",
+    "nonebot2>=2.1.1",
     "nonebot-plugin-apscheduler>=0.3.0",
-    "nb-cli>=1.2.2",
     "nonebot-plugin-send-anything-anywhere>=0.3.0",
+    "nonebot-adapter-onebot>=2.2.4",
+    "nonebot-plugin-htmlrender>=0.2.2",
     "pymysql>=1.1.0",
     "SQLAlchemy>=1.4.41",
     "sqlalchemy-utils>=0.41.1",
-    "nonebot-adapter-onebot>=2.2.4",
     "cryptography>=41.0.3",
     "setuptools>=68.1.0",
-    "nonebot-plugin-htmlrender>=0.2.2",
     "aiohttp>=3.8.5",
     "pillow>=10.0.1",
     "asyncmy>=0.2.8",
@@ -35,7 +36,7 @@ adapters = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" },
     { name = "OneBot V12", module_name = "nonebot.adapters.onebot.v12" },
 ]
-plugins = ["nonebot_plugin_sentry", "nonebot_plugin_htmlrender"]
+plugins = ["nonebot_plugin_htmlrender"]
 plugin_dirs = ["nonebot_plugin_valorant/plugins"]
 builtin_plugins = ["echo"]
 [tool.pdm.dev-dependencies]
