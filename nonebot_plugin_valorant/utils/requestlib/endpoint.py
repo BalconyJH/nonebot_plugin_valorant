@@ -239,7 +239,7 @@ class EndpointAPI:
 
         Valorant 点数的 ID 为 85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741。
         Radiant 点数的 ID 为 e59aa87c-4cbf-517a-5983-6e81511be9b7。
-        未知货币的 ID 为 f08d4ae3-939c-4576-ab26-09ce1f23bb37。
+        王国币 ID 为 f08d4ae3-939c-4576-ab26-09ce1f23bb37。
 
         Returns:
             包含玩家钱包中 Valorant 点数和 Radiant 点数余额的字典。

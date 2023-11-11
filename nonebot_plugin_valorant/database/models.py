@@ -1,21 +1,17 @@
-from sqlalchemy.orm import Mapped, Session, relationship, declarative_base
+from sqlalchemy.orm import Mapped, Session, declarative_base
 from sqlalchemy import (
+    DDL,
     JSON,
     BIGINT,
-    INTEGER,
     VARCHAR,
     Column,
     Boolean,
     DateTime,
-    ForeignKey,
     func,
+    event,
 )
 
 Base = declarative_base()
-
-# association_table = Table(
-#     ""
-# )
 
 
 class BaseModel(Base):
@@ -151,8 +147,6 @@ class SkinsStore(BaseModel):
     duration = Column(BIGINT)
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
-    user = relationship("User", back_populates="skins_store")
-
     def __repr__(self):
         return f"<SkinsStore(puuid='{self.puuid}', offer_1='{self.offer_1}', offer_2='{self.offer_2}', offer_3='{self.offer_3}', offer_4='{self.offer_4}', duration='{self.duration}', timestamp='{self.timestamp}')>"
 
@@ -184,7 +178,21 @@ class BonusStore(BaseModel):
 
 
 class User(BaseModel):
-    """ """
+    """
+    This class represents a user in the database.
+
+    Attributes:
+        qq_uid (str): The QQ user ID of the user.
+        puuid (str): The unique identifier of the user.
+        cookie (str): The cookie value of the user.
+        access_token (str): The access token of the user.
+        token_id (str): The token ID of the user.
+        expiry_token (int): The expiry of the token.
+        emt (str): The entitlement token of the user.
+        username (str): The username of the user.
+        region (str): The region of the user.
+        timestamp (datetime): The timestamp when the user was added to the database.
+    """
 
     __tablename__ = "user"
 
@@ -192,7 +200,7 @@ class User(BaseModel):
     qq_uid = Column(VARCHAR(30), nullable=False, unique=True)
 
     # Riot用户信息
-    puuid = Column(VARCHAR(36), ForeignKey("skins_store.puuid"), primary_key=True)
+    puuid = Column(VARCHAR(36), primary_key=True)
     cookie = Column(JSON)
     access_token = Column(VARCHAR(2000))
     token_id = Column(VARCHAR(2000))
@@ -202,10 +210,25 @@ class User(BaseModel):
     region = Column(VARCHAR(255))
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
-    skins_store = relationship("SkinsStore", back_populates="user")
-
     def __repr__(self):
         return f"<User(qq_uid='{self.qq_uid}', puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', expiry_token='{self.expiry_token}', emt='{self.emt}', username='{self.username}', region='{self.region}', timestamp='{self.timestamp}')>"
+
+
+trigger = DDL(
+    """
+    CREATE TRIGGER after_user_insert
+    AFTER INSERT ON user
+    FOR EACH ROW
+    BEGIN
+        DECLARE puuid_exist INT;
+        SET puuid_exist = (SELECT COUNT(*) FROM skins_store WHERE puuid = NEW.puuid);
+        IF puuid_exist = 0 THEN
+            INSERT INTO skins_store (puuid) VALUES (NEW.puuid);
+        END IF;
+    END;
+"""
+)
+event.listen(User.__table__, "after_create", trigger)
 
 
 class WeaponSkins(BaseModel):
