@@ -151,7 +151,7 @@ dmypy.json
 .pdm.toml
 
 # valorant_cache
-/nonebot_plugin_valorant/resources/image/skin
+/nonebot_plugin_valorant/resources/image/
 /nonebot_plugin_valorant/resources/cache/
 /nonebot_plugin_valorant/data/
 
