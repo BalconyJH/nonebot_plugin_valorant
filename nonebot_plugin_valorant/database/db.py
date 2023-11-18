@@ -159,14 +159,21 @@ class DB:
     #     for version_data in data:
 
     @classmethod
-    async def get_version(cls):
+    async def get_version(cls, *args):
         """
         查询版本信息。
 
         返回值:
         - version: 版本信息。
         """
-        return (await Version.get(session)).first()
+        if args:
+            columns = [getattr(Version, name, None) for name in args]
+            if any(column is None for column in columns):
+                invalid_columns = [name for name, column in zip(args, columns) if column is None]
+                raise ValueError(f"无效的列名: {invalid_columns}")
+            return session.query(*columns).first()
+        else:
+            return session.query(Version).first()
 
     @classmethod
     async def update_version(cls, **kwargs):

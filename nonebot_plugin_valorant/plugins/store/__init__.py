@@ -5,9 +5,11 @@ from nonebot.adapters.onebot.v11 import PrivateMessageEvent as PrivateMessageEve
 from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEventV12
 
 from nonebot_plugin_valorant.database.db import DB
+from nonebot_plugin_valorant.utils import message_translator
 from nonebot_plugin_valorant.utils.requestlib.auth import Auth
+from nonebot_plugin_valorant.utils.errors import AuthenticationError
+from nonebot_plugin_valorant.plugins.store.cache import refresh_store
 from nonebot_plugin_valorant.utils.parsinglib.endpoint_parsing import SkinsPanel
-from nonebot_plugin_valorant.utils import AuthenticationError, message_translator
 from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
 from nonebot_plugin_valorant.utils.render.storefront_skinpanel import parse_user_info, render_skin_panel
 
@@ -66,4 +68,4 @@ async def _test(
     event: PrivateMessageEventV11 | PrivateMessageEventV12,
     state: T_State,
 ):
-    pass
+    await refresh_store()

@@ -5,10 +5,10 @@ from pathlib import Path
 from nonebot import logger
 from nonebot_plugin_htmlrender import template_to_pic
 
+from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
 
-from ...database import DB
 from ..errors import RequestError
 from ..requestlib.endpoint import EndpointAPI
 from ..requestlib.auth import Auth, AuthCredentials

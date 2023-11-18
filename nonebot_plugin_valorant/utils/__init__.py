@@ -10,9 +10,9 @@ from cryptography.fernet import Fernet
 from aiohttp.client_exceptions import ClientConnectorError
 from sqlalchemy.exc import SQLAlchemyError, ProgrammingError
 
+from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.config import plugin_config
 
-from ..database import DB
 from .cache import init_cache
 from ..database.db import engine
 from .translator import Translator

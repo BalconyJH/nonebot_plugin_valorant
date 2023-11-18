@@ -1,4 +1,4 @@
-from nonebot_plugin_valorant.database import DB
+from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.utils.requestlib.client import get_version
 from nonebot_plugin_valorant.utils.requestlib.request_res import get_skin, get_tier
 
@@ -23,9 +23,7 @@ async def cache_version():
     """
     data = await get_version()
     await DB.update_version(**data)
-    await DB.init_version(
-        filter_by={"manifestId": data.get("manifestId")}, update_value={"initial": True}
-    )
+    await DB.init_version(filter_by={"manifestId": data.get("manifestId")}, update_value={"initial": True})
 
 
 async def init_cache():
