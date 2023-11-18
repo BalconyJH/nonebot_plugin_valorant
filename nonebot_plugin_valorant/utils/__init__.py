@@ -1,32 +1,24 @@
 import os
-import asyncio
 from uuid import UUID
 from pathlib import Path
-from contextlib import suppress
 from urllib.parse import urlparse
 
 import aiohttp
 from nonebot import require
 from nonebot.log import logger
 from cryptography.fernet import Fernet
-from nonebot import on_command as _on_command
+from aiohttp.client_exceptions import ClientConnectorError
 from sqlalchemy.exc import SQLAlchemyError, ProgrammingError
-from aiohttp.client_exceptions import InvalidURL, ClientConnectorError
 
 from nonebot_plugin_valorant.config import plugin_config
 
 from ..database import DB
+from .cache import init_cache
 from ..database.db import engine
 from .translator import Translator
 from .requestlib.client import get_version
-from .cache import init_cache, cache_store, cache_version
 from ..resources.image.skin import download_images_from_db
-from .errors import (
-    DatabaseError,
-    ResponseError,
-    ConfigurationError,
-    AuthenticationError,
-)
+from .errors import DatabaseError, ResponseError, ConfigurationError
 
 # def on_command(cmd, *args, **kwargs):
 #     return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
@@ -115,7 +107,7 @@ async def generate_database_key():
     if os.path.isfile(key_path):
         # 使用已存在的密钥文件
         try:
-            with open(key_path, "r") as f:
+            with open(key_path) as f:
                 key_str = f.read().encode()
                 key = Fernet(key_str)
         except Exception as e:

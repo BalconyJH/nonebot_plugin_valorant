@@ -1,5 +1,3 @@
-from typing import Union
-
 from nonebot import on_command
 from nonebot.params import T_State
 from nonebot_plugin_saa import Image, MessageFactory
@@ -11,10 +9,7 @@ from nonebot_plugin_valorant.utils.requestlib.auth import Auth
 from nonebot_plugin_valorant.utils.parsinglib.endpoint_parsing import SkinsPanel
 from nonebot_plugin_valorant.utils import AuthenticationError, message_translator
 from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
-from nonebot_plugin_valorant.utils.render.storefront_skinpanel import (
-    parse_user_info,
-    render_skin_panel,
-)
+from nonebot_plugin_valorant.utils.render.storefront_skinpanel import parse_user_info, render_skin_panel
 
 store = on_command("store", aliases={"商店"}, priority=5, block=True)
 test = on_command("test", aliases={"test"}, priority=5, block=True)
@@ -25,31 +20,29 @@ store.handle()
 store.__doc__ = """商店"""
 
 
-async def cache_skins_store_into_db(
-    user_data: PlayerInformation, skin_data: SkinsPanel
-) -> None:
+async def cache_skins_store_into_db(user_data: PlayerInformation, skin_data: SkinsPanel) -> None:
     """缓存商店皮肤信息到数据库"""
     await DB.cache_player_skins_store(
-        uuid=user_data.puuid,
-        offer_1=skin_data.skin1.dict(),
-        offer_2=skin_data.skin2.dict(),
-        offer_3=skin_data.skin3.dict(),
-        offer_4=skin_data.skin4.dict(),
+        puuid=user_data.puuid,
+        offer_1=skin_data.skin1.uuid,
+        offer_2=skin_data.skin2.uuid,
+        offer_3=skin_data.skin3.uuid,
+        offer_4=skin_data.skin4.uuid,
         duration=skin_data.duration,
     )
 
 
 async def invalid_login_credentials(
-    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
+    event: PrivateMessageEventV11 | PrivateMessageEventV12,
     state: T_State,
 ):
     await DB.logout(event.get_user_id())
-    await DB.delete_player_skins_store(event.get_user_id())
+    # await DB.delete_player_skins_store(event.get_user_id())
 
 
 @store.handle()
 async def _(
-    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
+    event: PrivateMessageEventV11 | PrivateMessageEventV12,
     state: T_State,
 ):
     # tracer = VizTracer()
@@ -70,7 +63,7 @@ async def _(
 
 @test.handle()
 async def _test(
-    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
+    event: PrivateMessageEventV11 | PrivateMessageEventV12,
     state: T_State,
 ):
     pass

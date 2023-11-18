@@ -1,19 +1,15 @@
 import re
 import ssl
 import json
+from typing import Any
 from datetime import datetime, timedelta
-from typing import Any, Dict, Tuple, Optional
 
 import aiohttp as aiohttp
 import urllib3.exceptions
 from pydantic import BaseModel
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.utils.errors import (
-    ResponseError,
-    DataParseError,
-    AuthenticationError,
-)
+from nonebot_plugin_valorant.utils.errors import ResponseError, DataParseError, AuthenticationError
 
 # disable urllib3 warnings that might arise from making requests to 127.0.0.1
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -33,11 +29,11 @@ class AuthCredentials(BaseModel):
 
     """
 
-    access_token: Optional[str] = None
-    token_id: Optional[str] = None
-    expiry_token: Optional[int] = None
-    entitlements_token: Optional[str] = None
-    cookie: Optional[Dict] = None
+    access_token: str | None = None
+    token_id: str | None = None
+    expiry_token: int | None = None
+    entitlements_token: str | None = None
+    cookie: dict | None = None
 
 
 # https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites/
@@ -89,18 +85,16 @@ class ClientSession(aiohttp.ClientSession):
             *args,
             **kwargs,
             cookie_jar=aiohttp.CookieJar(),
-            connector=aiohttp.TCPConnector(ssl=ctx),
+            # connector=aiohttp.TCPConnector(ssl=ctx),
         )
 
 
 class Auth:
-    RIOT_CLIENT_USER_AGENT = (
-        "RiotClient/60.0.6.4770705.4749685 rso-auth (Windows;10;;Professional, x64)"
-    )
+    RIOT_CLIENT_USER_AGENT = "RiotClient/60.0.6.4770705.4749685 rso-auth (Windows;10;;Professional, x64)"
     AUTH_URL = "https://auth.riotgames.com/api/v1/authorization"
 
     def __init__(self) -> None:
-        self.headers: Dict[str, str] = {
+        self.headers: dict[str, str] = {
             "Content-Type": "application/json",
             "User-Agent": Auth.RIOT_CLIENT_USER_AGENT,
             "Accept": "application/json, text/plain, */*",
@@ -108,7 +102,7 @@ class Auth:
         self.user_agent: str = Auth.RIOT_CLIENT_USER_AGENT
         self.locale_code = "en-US"  # default language
 
-    async def authenticate(self, username: str, password: str) -> Dict[str, Any]:
+    async def authenticate(self, username: str, password: str) -> dict[str, Any]:
         """用于认证用户的函数。
 
         Args:
@@ -216,7 +210,7 @@ class Auth:
             # 如果身份验证失败，则引发 AuthenticationError。
             raise AuthenticationError("errors.AUTH.INVALID_PASSWORD")
 
-    async def auth_by_code(self, code: str, cookies: Dict) -> Dict[str, Any]:
+    async def auth_by_code(self, code: str, cookies: dict) -> dict[str, Any]:
         """用于输入 2FA 验证码的方法。
 
         Args:
@@ -268,7 +262,7 @@ class Auth:
             }
         raise AuthenticationError("errors.AUTH.2FA_INVALID_CODE")
 
-    async def redeem_cookies(self, cookies: Dict) -> AuthCredentials:
+    async def redeem_cookies(self, cookies: dict) -> AuthCredentials:
         """
         该函数用于兑换 cookies。
 
@@ -339,7 +333,7 @@ class Auth:
             expiry_token=expiry_token,
         )
 
-    async def temp_auth(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+    async def temp_auth(self, username: str, password: str) -> dict[str, Any] | None:
         """
         临时登录，返回包含玩家信息的字典。
 
@@ -375,7 +369,7 @@ class Auth:
             }
         raise AuthenticationError("errors.AUTH.TEMP_LOGIN_NOT_SUPPORT_2FA")
 
-    async def login_with_cookie(self, cookies: Dict) -> AuthCredentials:
+    async def login_with_cookie(self, cookies: dict) -> AuthCredentials:
         """
         使用 Cookie 进行登录并返回包含访问令牌、令牌 ID 和资格令牌的字典。
 
@@ -390,9 +384,7 @@ class Auth:
         """
         # 构建 Cookie 负载
         cookie_value = cookies.get("cookie", "")
-        cookie_payload = (
-            f"ssid={cookie_value};" if cookie_value.startswith("e") else cookie_value
-        )
+        cookie_payload = f"ssid={cookie_value};" if cookie_value.startswith("e") else cookie_value
 
         # 将 Cookie 加入请求头
         self.headers["cookie"] = cookie_payload
@@ -438,7 +430,7 @@ class Auth:
             cookie=new_cookies,
         )
 
-    async def refresh_token(self, cookies: Dict) -> AuthCredentials:
+    async def refresh_token(self, cookies: dict) -> AuthCredentials:
         """刷新访问令牌、权限令牌和Cookie。
 
         参数:
@@ -455,7 +447,7 @@ class Auth:
         )
 
     @staticmethod
-    def _extract_tokens_from_response(data: Dict[str, Any]) -> Tuple[str, str, str]:
+    def _extract_tokens_from_response(data: dict[str, Any]) -> tuple[str, str, str]:
         """
         Extract tokens from data
 
@@ -469,9 +461,7 @@ class Auth:
         try:
             uri = data["response"]["parameters"]["uri"]
             pattern = re.compile(
-                "access_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
-                "id_token=((?:[a-zA-Z]|\d|\.|-|_)*).*"
-                "expires_in=(\d*)"
+                r"access_token=((?:[a-zA-Z]|\d|\.|-|_)*).*" r"id_token=((?:[a-zA-Z]|\d|\.|-|_)*).*" r"expires_in=(\d*)"
             )
             match = pattern.search(uri)
             if match is None:
@@ -505,7 +495,7 @@ class Auth:
             raise IndexError("Invalid uri") from error
 
     @staticmethod
-    async def get_entitlements_token(access_token: str) -> Optional[str]:
+    async def get_entitlements_token(access_token: str) -> str | None:
         """
         用于获取权限令牌的静态方法
 
@@ -543,7 +533,7 @@ class Auth:
             raise AuthenticationError("errors.DATA.PARSING_ERROR") from error
 
     @staticmethod
-    async def get_userinfo(access_token: str) -> Tuple[str, str, str]:
+    async def get_userinfo(access_token: str) -> tuple[str, str, str]:
         """用于获取用户信息的静态方法。
 
         Args:
@@ -563,9 +553,7 @@ class Auth:
             "Authorization": f"Bearer {access_token}",
         }
 
-        async with session.post(
-            "https://auth.riotgames.com/userinfo", headers=headers, json={}
-        ) as r:
+        async with session.post("https://auth.riotgames.com/userinfo", headers=headers, json={}) as r:
             data = await r.json()
 
         await session.close()
@@ -620,9 +608,7 @@ class Auth:
             return region
 
     @staticmethod
-    async def token_validity(
-        cookies: Dict, timestamp: int
-    ) -> Optional[AuthCredentials]:
+    async def token_validity(cookies: dict, timestamp: int) -> AuthCredentials | None:
         """检查令牌是否有效。
 
         这个函数接受一个包含 Cookie 信息的字典，并验证其中的令牌是否有效。

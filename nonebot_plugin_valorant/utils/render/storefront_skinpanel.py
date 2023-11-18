@@ -2,7 +2,6 @@ import copy
 import time
 from pathlib import Path
 
-from rich import print
 from nonebot import logger
 from nonebot_plugin_htmlrender import template_to_pic
 
@@ -22,6 +21,8 @@ async def login_status(qq_uid: str) -> bool:
 
 async def parse_user_info(qq_uid: str):
     user = await DB.get_user(qq_uid)
+    if user is None:
+        return None, None
     player_info = PlayerInformation(
         puuid=user.puuid,
         player_name=user.username,

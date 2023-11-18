@@ -1,17 +1,21 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 
+class PlayerWallet(BaseModel):
+    valorant_points: int
+    radiant_points: int
+    kingdom_credits: int
+
+
 class PlayerInformation(BaseModel):
-    channel_uid: Optional[str] = None
-    puuid: str
-    player_name: str
-    region: str
-    locale_code: Optional[str] = "en-US"
-    xp: Optional[str] = None
-    mmr: Optional[str] = None
-    wallet: Optional[dict[str, str]] = None
+    qq_uid: str | None = None
+    puuid: str | None = None
+    player_name: str | None = None
+    region: str | None = None
+    locale_code: str | None = "en-US"
+    xp: str | None = None
+    mmr: str | None = None
+    wallet: PlayerWallet | None
 
 
 # class PlayerInfo:

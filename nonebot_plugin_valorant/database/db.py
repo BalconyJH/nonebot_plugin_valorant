@@ -1,5 +1,3 @@
-from typing import Dict
-
 from nonebot import get_driver
 from nonebot.log import logger
 from sqlalchemy import create_engine
@@ -10,14 +8,7 @@ from sqlalchemy_utils import create_database, database_exists
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.utils.errors import DatabaseError
-from nonebot_plugin_valorant.database.models import (  # UserShop,
-    Tier,
-    User,
-    Version,
-    BaseModel,
-    SkinsStore,
-    WeaponSkins,
-)
+from nonebot_plugin_valorant.database.models import Tier, User, Version, BaseModel, SkinsStore, WeaponSkins  # UserShop,
 
 engine = create_engine(plugin_config.valorant_database)
 Session = sessionmaker(bind=engine)
@@ -130,7 +121,7 @@ class DB:
         await User.update(session, filter_by=filter_by, update_values=update_values)
 
     @classmethod
-    async def cache_skin(cls, data: Dict):
+    async def cache_skin(cls, data: dict):
         """
         缓存商店信息。
 
@@ -144,7 +135,7 @@ class DB:
         logger.info("skin缓存完成")
 
     @classmethod
-    async def cache_tier(cls, data: Dict):
+    async def cache_tier(cls, data: dict):
         """
         缓存段位信息。
 
@@ -245,9 +236,7 @@ class DB:
         返回值:
         - skins: 武器皮肤图标。
         """
-        return (
-            await WeaponSkins.get(session, WeaponSkins.uuid, WeaponSkins.icon)
-        ).all()
+        return (await WeaponSkins.get(session, WeaponSkins.uuid, WeaponSkins.icon)).all()
 
     @classmethod
     async def cache_player_skins_store(cls, **kwargs):
@@ -268,6 +257,19 @@ class DB:
         - qq_uid: 用户的 QQ UID。
         """
         await SkinsStore.delete(session, qq_uid=qq_uid)
+
+    @classmethod
+    async def get_player_skins_store(cls, qq_uid: str):
+        """
+        获取用户商店信息。
+
+        参数:
+        - qq_uid: 用户的 QQ UID。
+
+        返回值:
+        - skins: 用户商店信息。
+        """
+        return (await SkinsStore.get(session, qq_uid=qq_uid)).first()
 
 
 get_driver().on_shutdown(DB.close)

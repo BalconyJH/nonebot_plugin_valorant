@@ -1,22 +1,13 @@
 from sqlalchemy.orm import Mapped, Session, declarative_base
-from sqlalchemy import (
-    DDL,
-    JSON,
-    BIGINT,
-    VARCHAR,
-    Column,
-    Boolean,
-    DateTime,
-    func,
-    event,
-)
+from sqlalchemy import DDL, JSON, BIGINT, VARCHAR, Column, Boolean, DateTime, func, event
 
 Base = declarative_base()
 
 
 class BaseModel(Base):
     """
-    This class is the base model for all other models in the project. It provides common methods for querying, adding, deleting, and updating data in the database.
+    This class is the base model for all other models in the project. It provides common methods for querying, adding,
+    deleting, and updating data in the database.
 
     Attributes:
         __abstract__ (bool): True if this is an abstract class, False otherwise.
@@ -148,7 +139,15 @@ class SkinsStore(BaseModel):
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
     def __repr__(self):
-        return f"<SkinsStore(puuid='{self.puuid}', offer_1='{self.offer_1}', offer_2='{self.offer_2}', offer_3='{self.offer_3}', offer_4='{self.offer_4}', duration='{self.duration}', timestamp='{self.timestamp}')>"
+        return (
+            f"<SkinsStore(puuid='{self.puuid}', "
+            f"offer_1='{self.offer_1}', "
+            f"offer_2='{self.offer_2}', "
+            f"offer_3='{self.offer_3}', "
+            f"offer_4='{self.offer_4}', "
+            f"duration='{self.duration}', "
+            f"timestamp='{self.timestamp}')>"
+        )
 
 
 class BonusStore(BaseModel):
@@ -211,7 +210,18 @@ class User(BaseModel):
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
     def __repr__(self):
-        return f"<User(qq_uid='{self.qq_uid}', puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', expiry_token='{self.expiry_token}', emt='{self.emt}', username='{self.username}', region='{self.region}', timestamp='{self.timestamp}')>"
+        return (
+            f"<User(qq_uid='{self.qq_uid}', "
+            f"puuid='{self.puuid}', "
+            f"cookie='{self.cookie}', "
+            f"access_token='{self.access_token}', "
+            f"token_id='{self.token_id}', "
+            f"expiry_token='{self.expiry_token}', "
+            f"emt='{self.emt}', "
+            f"username='{self.username}', "
+            f"region='{self.region}', "
+            f"timestamp='{self.timestamp}')>"
+        )
 
 
 trigger = DDL(
@@ -253,7 +263,13 @@ class WeaponSkins(BaseModel):
     hash = Column(VARCHAR(255))
 
     def __repr__(self):
-        return f"<WeaponSkins(uuid='{self.uuid}', names='{self.names}', icon='{self.icon}', tier='{self.tier}', hash='{self.hash}')>"
+        return (
+            f"<WeaponSkins(uuid='{self.uuid}', "
+            f"names='{self.names}', "
+            f"icon='{self.icon}', "
+            f"tier='{self.tier}', "
+            f"hash='{self.hash}')>"
+        )
 
 
 class Version(BaseModel):
@@ -285,7 +301,17 @@ class Version(BaseModel):
     initial = Column(Boolean, default=False)
 
     def __repr__(self):
-        return f"<Version('manifestId='{self.manifestId}', branch='{self.branch}', version='{self.version}', buildVersion='{self.buildVersion}', engineVersion='{self.engineVersion}', riotClientVersion='{self.riotClientVersion}', riotClientBuild='{self.riotClientBuild}', buildDate='{self.buildDate}', initial='{self.initial}')>"
+        return (
+            f"<Version('manifestId='{self.manifestId}', "
+            f"branch='{self.branch}', "
+            f"version='{self.version}', "
+            f"buildVersion='{self.buildVersion}', "
+            f"engineVersion='{self.engineVersion}', "
+            f"riotClientVersion='{self.riotClientVersion}', "
+            f"riotClientBuild='{self.riotClientBuild}', "
+            f"buildDate='{self.buildDate}', "
+            f"initial='{self.initial}')>"
+        )
 
 
 class Tier(BaseModel):
@@ -336,7 +362,13 @@ class Mission(BaseModel):
     xp: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
-        return f"<Mission(uuid='{self.uuid}', titles='{self.titles}', type='{self.type}', progress='{self.progress}', xp='{self.xp}')>"
+        return (
+            f"<Mission(uuid='{self.uuid}', "
+            f"titles='{self.titles}', "
+            f"type='{self.type}', "
+            f"progress='{self.progress}', "
+            f"xp='{self.xp}')>"
+        )
 
 
 class Playercard(BaseModel):
@@ -356,9 +388,7 @@ class Playercard(BaseModel):
     icon: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
-        return (
-            f"<Playercard(uuid='{self.uuid}', name='{self.name}', icon='{self.icon}')>"
-        )
+        return f"<Playercard(uuid='{self.uuid}', name='{self.name}', icon='{self.icon}')>"
 
 
 class Title(BaseModel):

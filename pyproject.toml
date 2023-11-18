@@ -22,6 +22,11 @@ dependencies = [
     "pillow>=10.0.1",
     "asyncmy>=0.2.8",
     "tqdm>=4.66.1",
+    "nonebot-adapter-satori>=0.6.2",
+    "nonebot-adapter-villa>=0.6.6",
+    "nonebot-adapter-discord>=0.1.0b4",
+    "nb-cli>=1.2.5",
+    "httpx>=0.25.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -50,18 +55,39 @@ dev = [
 ]
 
 [tool.black]
-line-length = 88
+line-length = 120
+target-version = ["py38", "py39", "py310", "py311"]
 include = '\.pyi?$'
 extend-exclude = '''
 '''
 
 [tool.isort]
 profile = "black"
-line_length = 88
+line_length = 120
 length_sort = true
 skip_gitignore = true
 force_sort_within_sections = true
 extra_standard_library = ["typing_extensions"]
 
-[tool.pycln]
-path = "."
+[tool.ruff]
+select = ["E", "W", "F", "UP", "C", "T", "PYI", "PT", "Q"]
+ignore = ["E402", "C901", "UP037"]
+line-length = 120
+
+[tool.ruff.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.pyright]
+pythonVersion = "3.8"
+pythonPlatform = "All"
+executionEnvironments = [
+  { root = "./tests", extraPaths = [
+    "./",
+  ] },
+  { root = "./" },
+]
+
+typeCheckingMode = "basic"
+reportShadowedImports = false
+disableBytesTypePromotions = true
