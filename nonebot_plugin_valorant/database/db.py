@@ -1,23 +1,14 @@
-from typing import Dict
-
 from nonebot import get_driver
 from nonebot.log import logger
 from sqlalchemy import create_engine
 from cryptography.fernet import Fernet
-from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_database, database_exists
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.utils.errors import DatabaseError
-from nonebot_plugin_valorant.database.models import (  # UserShop,
-    Tier,
-    User,
-    Version,
-    BaseModel,
-    WeaponSkins,
-)
+from nonebot_plugin_valorant.database.models import Tier, User, Version, BaseModel, SkinsStore, WeaponSkins  # UserShop,
 
 engine = create_engine(plugin_config.valorant_database)
 Session = sessionmaker(bind=engine)
@@ -48,8 +39,8 @@ class DB:
         初始化数据库。创建数据库和表格。
         """
         try:
-            await cls._create_tables()
             await cls._create_database()
+            await cls._create_tables()
         except SQLAlchemyError as e:
             raise DatabaseError(f"数据库初始化失败{e}") from e
 
@@ -115,8 +106,7 @@ class DB:
         返回值:
         - user: 用户信息(Dict)。
         """
-        user = await User.get(session, qq_uid=qq_uid)
-        return user.first()
+        return (await User.get(session, qq_uid=qq_uid)).first()
 
     @classmethod
     async def update_user(cls, filter_by: dict, update_values: dict):
@@ -131,7 +121,7 @@ class DB:
         await User.update(session, filter_by=filter_by, update_values=update_values)
 
     @classmethod
-    async def cache_skin(cls, data: Dict):
+    async def cache_skin(cls, data: dict):
         """
         缓存商店信息。
 
@@ -145,7 +135,7 @@ class DB:
         logger.info("skin缓存完成")
 
     @classmethod
-    async def cache_tier(cls, data: Dict):
+    async def cache_tier(cls, data: dict):
         """
         缓存段位信息。
 
@@ -169,14 +159,21 @@ class DB:
     #     for version_data in data:
 
     @classmethod
-    async def get_version(cls):
+    async def get_version(cls, *args):
         """
         查询版本信息。
 
         返回值:
         - version: 版本信息。
         """
-        return (await Version.get(session)).first()
+        if args:
+            columns = [getattr(Version, name, None) for name in args]
+            if any(column is None for column in columns):
+                invalid_columns = [name for name, column in zip(args, columns) if column is None]
+                raise ValueError(f"无效的列名: {invalid_columns}")
+            return session.query(*columns).first()
+        else:
+            return session.query(Version).first()
 
     @classmethod
     async def update_version(cls, **kwargs):
@@ -202,8 +199,8 @@ class DB:
             logger.info("版本信息已刷新")
 
     @classmethod
-    async def init_version(cls, **kwargs):
-        await Version.add(session, **kwargs)
+    async def init_version(cls, filter_by: dict, update_value: dict):
+        await Version.update(session, filter_by, update_value)
 
     # @classmethod
     # async def update_user_store_offer(cls, **kwargs: object):
@@ -239,17 +236,47 @@ class DB:
         return (await WeaponSkins.get(session, uuid=uuid)).first()
 
     @classmethod
-    async def update_player_skin_panel(
-        cls, filter_by: dict, update_values: dict
-    ) -> None:
+    async def get_all_skins_icon(cls):
         """
-        更新玩家皮肤面板信息。
+        获取所有武器皮肤的图标。
+
+        返回值:
+        - skins: 武器皮肤图标。
+        """
+        return (await WeaponSkins.get(session, WeaponSkins.uuid, WeaponSkins.icon)).all()
+
+    @classmethod
+    async def cache_player_skins_store(cls, **kwargs):
+        """
+        缓存用户商店信息。
 
         参数:
-        - filter_by: 用于筛选记录的字段和值。
-        - update_values: 用于更新记录的字段和新值。
+        - kwargs: 包含用户商店信息的关键字参数。
         """
-        await User.update(session, filter_by=filter_by, update_values=update_values)
+        await SkinsStore.add(session, **kwargs)
+
+    @classmethod
+    async def delete_player_skins_store(cls, qq_uid: str):
+        """
+        删除用户商店信息。
+
+        参数:
+        - qq_uid: 用户的 QQ UID。
+        """
+        await SkinsStore.delete(session, qq_uid=qq_uid)
+
+    @classmethod
+    async def get_player_skins_store(cls, qq_uid: str):
+        """
+        获取用户商店信息。
+
+        参数:
+        - qq_uid: 用户的 QQ UID。
+
+        返回值:
+        - skins: 用户商店信息。
+        """
+        return (await SkinsStore.get(session, qq_uid=qq_uid)).first()
 
 
 get_driver().on_shutdown(DB.close)

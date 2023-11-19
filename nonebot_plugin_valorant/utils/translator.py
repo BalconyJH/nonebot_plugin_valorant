@@ -5,12 +5,7 @@ from nonebot.log import logger
 
 from nonebot_plugin_valorant.config import plugin_config
 
-TRANSLATIONS_PATH = (
-    Path(__file__).parent.parent
-    / "resources"
-    / "translations"
-    / f"{plugin_config.language_type}.json"
-)
+TRANSLATIONS_PATH = Path(__file__).parent.parent / "resources" / "translations" / f"{plugin_config.language_type}.json"
 
 
 class Translator:
@@ -23,7 +18,7 @@ class Translator:
         加载指定语言的翻译文件并初始化翻译器。
         """
         try:
-            with open(TRANSLATIONS_PATH, "r", encoding="utf-8") as f:
+            with open(TRANSLATIONS_PATH, encoding="utf-8") as f:
                 self.translations = json.load(f)
         except FileNotFoundError as e:
             logger.error(f"找不到翻译文件: {e}")
@@ -43,7 +38,7 @@ class Translator:
             if key in data:
                 data = data[key]
             else:
-                raise ValueError
+                raise ValueError(f"找不到键{key_sequence}的值")
 
         return data
 

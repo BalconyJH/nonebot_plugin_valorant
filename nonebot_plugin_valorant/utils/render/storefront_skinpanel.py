@@ -2,17 +2,16 @@ import copy
 import time
 from pathlib import Path
 
-from rich import print
 from nonebot import logger
-from nonebot_plugin_htmlrender import get_new_page, template_to_pic
+from nonebot_plugin_htmlrender import template_to_pic
 
+from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.config import plugin_config
+from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
 
-from ...database import DB
 from ..errors import RequestError
 from ..requestlib.endpoint import EndpointAPI
 from ..requestlib.auth import Auth, AuthCredentials
-from ..requestlib.player_info import PlayerInformation
 from ..parsinglib.endpoint_parsing import SkinsPanel, skin_panel_parser
 
 
@@ -23,8 +22,7 @@ async def login_status(qq_uid: str) -> bool:
 async def parse_user_info(qq_uid: str):
     user = await DB.get_user(qq_uid)
     if user is None:
-        logger.error(f"用户 {qq_uid} 不存在")
-        return None
+        return None, None
     player_info = PlayerInformation(
         puuid=user.puuid,
         player_name=user.username,
@@ -40,8 +38,8 @@ async def parse_user_info(qq_uid: str):
     if data is None:
         try:
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
-            return await skin_panel_parser(resp)
-        except RequestError as error:
+            return await skin_panel_parser(resp), player_info
+        except RequestError:
             data = await Auth().redeem_cookies(auth_info.cookie)
             resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
             await DB.update_user(
@@ -54,7 +52,7 @@ async def parse_user_info(qq_uid: str):
                     "cookie": data.cookie,
                 },
             )
-            return await skin_panel_parser(resp)
+            return await skin_panel_parser(resp), player_info
     else:
         await DB.update_user(
             filter_by={"qq_uid": qq_uid},
@@ -68,11 +66,10 @@ async def parse_user_info(qq_uid: str):
         )
         auth_info = copy.copy(data)
         resp = await EndpointAPI(player_info, auth_info).get_player_storefront()
-        return await skin_panel_parser(resp)
+        return await skin_panel_parser(resp), player_info
 
 
 async def render_skin_panel(data: SkinsPanel) -> bytes:
-    print(data)
     start_time = time.time()
     template_path = str(Path(__file__).parent / "templates")
     template_name = "storefront_skinpanel.html"
@@ -108,5 +105,5 @@ async def render_skin_panel(data: SkinsPanel) -> bytes:
         },
         wait=2,
     )
-    logger.info(f"渲染耗时: {time.time() - start_time}")
+    logger.debug(f"渲染耗时: {time.time() - start_time}")
     return pic

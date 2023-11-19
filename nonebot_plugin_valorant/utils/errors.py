@@ -1,12 +1,9 @@
 class TranslatableError(Exception):
-    def __init__(self, message, cause=None):
-        self.message = message
-        self.cause = cause
+    def __init__(self, message):
+        super().__init__(message)
 
-    def __str__(self) -> str:
-        if self.cause:
-            return f"{self.message}, caused by {self.cause}"
-        return self.message
+    # def __str__(self) -> str:
+    #     return self.__repr__()
 
 
 class NotOwner(TranslatableError):

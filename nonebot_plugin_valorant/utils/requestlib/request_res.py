@@ -1,16 +1,11 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 import aiohttp
 from nonebot import logger
 
 from nonebot_plugin_valorant.config import plugin_config
-from nonebot_plugin_valorant.database.db import calculate_hash
-from nonebot_plugin_valorant.utils.errors import (
-    RequestError,
-    ResponseError,
-    DataParseError,
-)
+from nonebot_plugin_valorant.utils.errors import RequestError, ResponseError, DataParseError
 
 # ------------------- #
 # credit https://github.com/colinhartigan/
@@ -142,7 +137,7 @@ def put_request_json_sync(
             raise ResponseError("errors.API.REQUEST_FAILED") from error
 
 
-def get_item_type(uuid: str) -> Optional[str]:
+def get_item_type(uuid: str) -> str | None:
     """
     获取项目类型。
 
@@ -172,7 +167,7 @@ def get_item_type(uuid: str) -> Optional[str]:
     return item_type.get(uuid)
 
 
-async def url_to_image(url) -> Optional[bytes]:
+async def url_to_image(url) -> bytes | None:
     """从指定的URL获取图片并返回其字节。
     Args:
         url: 要获取图片的URL。
@@ -188,10 +183,10 @@ async def url_to_image(url) -> Optional[bytes]:
 
 async def get_request_json(
     url: str,
-    headers: Dict = None,
+    headers: dict = None,
     proxy: str = plugin_config.valorant_proxies,
     sub_url: str = "",
-) -> Dict:
+) -> dict:
     """使用 aiohttp 发送 GET 请求并获取 JSON 数据。
 
     Args:
@@ -221,10 +216,10 @@ async def get_request_json(
 
 async def put_request_json(
     url: str,
-    data: Optional[dict],
-    headers: Optional[dict],
-    proxy: Optional[str] = plugin_config.valorant_proxies,
-) -> Dict:
+    data: dict | None,
+    headers: dict | None,
+    proxy: str | None = plugin_config.valorant_proxies,
+) -> dict:
     """使用 aiohttp 发送 PUT 请求并获取 JSON 数据。
 
     Args:
@@ -243,9 +238,7 @@ async def put_request_json(
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url, headers=headers, json=data, proxy=proxy
-            ) as response:
+            async with session.put(url, headers=headers, json=data, proxy=proxy) as response:
                 response = await response.json()
                 if response is not None:
                     return response
@@ -255,7 +248,7 @@ async def put_request_json(
         raise ResponseError("errors.API.REQUEST_FAILED") from error
 
 
-def parse_skin(skin: Dict[str, Any]) -> Dict[str, Any]:
+def parse_skin(skin: dict[str, Any]) -> dict[str, Any]:
     """解析武器皮肤数据
 
     Args:
@@ -264,23 +257,23 @@ def parse_skin(skin: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         解析后的武器皮肤数据
     """
-    skin_uuid = skin["levels"][0]["uuid"]
-    skin_names = skin["displayName"]
-    skin_icon = skin["levels"][0]["displayIcon"]
     skin_tier = skin["contentTierUuid"]
+    skin_uuid = skin["levels"][0]["uuid"]
+    skin_names = skin["levels"][0]["displayName"]
+    skin_icon = skin["levels"][0]["displayIcon"]
 
     return {
         "uuid": skin_uuid,
         "names": skin_names,
         "icon": skin_icon,
         "tier": skin_tier if skin_tier is not None else "None",
-        "hash": calculate_hash(
-            f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}"
-        ),  # 检查资源完整性
+        # "hash": calculate_hash(
+        #     f"{skin_uuid}{skin_names}{skin_icon}{skin_tier}"
+        # ),  # 检查资源完整性
     }
 
 
-async def get_skin() -> Dict[str, Any]:
+async def get_skin() -> dict[str, Any]:
     """获取武器皮肤数据
 
     Returns:
@@ -292,7 +285,7 @@ async def get_skin() -> Dict[str, Any]:
         return {parse_skin(skin)["uuid"]: parse_skin(skin) for skin in skin}
 
 
-def parse_tier(tier: Dict[str, Any]) -> Dict[str, Any]:
+def parse_tier(tier: dict[str, Any]) -> dict[str, Any]:
     """解析皮肤等级数据
 
     Args:
@@ -312,7 +305,7 @@ def parse_tier(tier: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_tier() -> Optional[Dict[str, Any]]:
+async def get_tier() -> dict[str, Any] | None:
     """获取皮肤等级数据
 
     Returns:
@@ -324,11 +317,11 @@ async def get_tier() -> Optional[Dict[str, Any]]:
             tier = resp.get("data", [])
             return {parse_tier(tier)["uuid"]: parse_tier(tier) for tier in tier}
     except Exception as e:
-        print(f"获取皮肤等级信息时发生错误：{e}")
+        logger.warning(f"获取皮肤等级信息时发生错误：{e}")
     return None
 
 
-async def parse_mission(mission: Dict[str, Any]) -> Dict[str, Any]:
+async def parse_mission(mission: dict[str, Any]) -> dict[str, Any]:
     """解析任务数据
 
     Args:
@@ -352,7 +345,7 @@ async def parse_mission(mission: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_mission() -> Optional[Dict]:
+async def get_mission() -> dict | None:
     """获取任务数据
 
     Returns:
@@ -367,11 +360,11 @@ async def get_mission() -> Optional[Dict]:
                 missions[mission_info["uuid"]] = mission_info
             return missions
     except Exception as e:
-        print(f"获取任务数据时发生错误：{e}")
+        logger.warning(f"获取任务数据时发生错误：{e}")
     return None
 
 
-def parse_playercard(card: Dict[str, Any]) -> Dict[str, Any]:
+def parse_playercard(card: dict[str, Any]) -> dict[str, Any]:
     """解析玩家旗帜数据
 
     Args:
@@ -395,7 +388,7 @@ def parse_playercard(card: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_playercards() -> Optional[Dict]:
+async def get_playercards() -> dict | None:
     """获取玩家旗帜数据
 
     Returns:
@@ -406,11 +399,11 @@ async def get_playercards() -> Optional[Dict]:
         if resp:
             return {card["uuid"]: parse_playercard(card) for card in resp["data"]}
     except Exception as e:
-        print(f"获取玩家旗帜信息时发生错误：{e}")
+        logger.warning(f"获取玩家旗帜信息时发生错误：{e}")
     return None
 
 
-def parse_title(player_title: Dict[str, Any]) -> Dict[str, Any]:
+def parse_title(player_title: dict[str, Any]) -> dict[str, Any]:
     """解析玩家称号数据
 
     Args:
@@ -430,7 +423,7 @@ def parse_title(player_title: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_player_titles() -> Optional[Dict]:
+async def get_player_titles() -> dict | None:
     """使用 aiohttp 从 valorant-api.com 获取玩家称号数据。
 
     Returns:
@@ -441,11 +434,11 @@ async def get_player_titles() -> Optional[Dict]:
         if resp:
             return {title["uuid"]: parse_title(title) for title in resp["data"]}
     except Exception as e:
-        print(f"获取玩家称号信息时发生错误：{e}")
+        logger.warning(f"获取玩家称号信息时发生错误：{e}")
     return None
 
 
-def parse_spray(spray: Dict[str, Any]) -> Dict[str, Any]:
+def parse_spray(spray: dict[str, Any]) -> dict[str, Any]:
     """解析喷漆数据
 
     Args:
@@ -465,7 +458,7 @@ def parse_spray(spray: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_spray() -> Optional[Dict]:
+async def get_spray() -> dict | None:
     """获取喷漆数据
 
     Returns:
@@ -476,11 +469,11 @@ async def get_spray() -> Optional[Dict]:
         if resp:
             return {spray["uuid"]: parse_spray(spray) for spray in resp["data"]}
     except Exception as e:
-        print(f"获取喷漆信息时发生错误：{e}")
+        logger.warning(f"获取喷漆信息时发生错误：{e}")
     return None
 
 
-def parse_bundle(bundle: Dict[str, Any]) -> Dict[str, Any]:
+def parse_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     """解析套装数据
 
     Args:
@@ -541,7 +534,7 @@ def parse_bundle(bundle: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_bundle() -> Optional[Dict]:
+async def get_bundle() -> dict | None:
     """获取套装数据
 
     Returns:
@@ -556,11 +549,11 @@ async def get_bundle() -> Optional[Dict]:
                 bundles[bundle_info["uuid"]] = bundle_info
             return bundles
     except Exception as e:
-        print(f"获取套装信息时发生错误：{e}")
+        logger.warning(f"获取套装信息时发生错误：{e}")
     return None
 
 
-def parse_contract(contract: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def parse_contract(contract: dict[str, Any]) -> dict[str, Any] | None:
     """解析合同数据
 
     Args:
@@ -595,7 +588,7 @@ def parse_contract(contract: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-async def get_contract() -> Optional[Dict]:
+async def get_contract() -> dict | None:
     """获取合同数据
 
     Returns:
@@ -612,11 +605,11 @@ async def get_contract() -> Optional[Dict]:
                 contracts[contract_info["uuid"]] = contract_info
             return contracts
     except Exception as e:
-        print(f"获取合同信息时发生错误：{e}")
+        logger.warning(f"获取合同信息时发生错误：{e}")
     return None
 
 
-def parse_rank_tier(tier: Dict[str, Any]) -> Dict[str, Any]:
+def parse_rank_tier(tier: dict[str, Any]) -> dict[str, Any]:
     """解析段位数据
 
     Args:
@@ -635,7 +628,7 @@ def parse_rank_tier(tier: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_rank_tiers() -> Optional[Dict[str, Any]]:
+async def get_rank_tiers() -> dict[str, Any] | None:
     """获取段位数据
 
     Returns:
@@ -650,11 +643,11 @@ async def get_rank_tiers() -> Optional[Dict[str, Any]]:
                     data[i["tier"]] = parse_rank_tier(i)
             return data
     except Exception as e:
-        print(f"获取段位信息时发生错误：{e}")
+        logger.warning(f"获取段位信息时发生错误：{e}")
     return None
 
 
-def parse_currency(currency: Dict[str, Any]) -> Dict[str, Any]:
+def parse_currency(currency: dict[str, Any]) -> dict[str, Any]:
     """解析货币数据
 
     Args:
@@ -670,7 +663,7 @@ def parse_currency(currency: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_currencies() -> Optional[Dict]:
+async def get_currencies() -> dict | None:
     """获取货币数据
 
     Returns:
@@ -679,15 +672,13 @@ async def get_currencies() -> Optional[Dict]:
     try:
         resp = await get_request_json("currencies?language=all")
         if resp:
-            return {
-                currency["uuid"]: parse_currency(currency) for currency in resp["data"]
-            }
+            return {currency["uuid"]: parse_currency(currency) for currency in resp["data"]}
     except Exception as e:
-        print(f"获取货币信息时发生错误：{e}")
+        logger.warning(f"获取货币信息时发生错误：{e}")
     return None
 
 
-def parse_buddy(buddy: Dict[str, Any]) -> Dict[str, Any]:
+def parse_buddy(buddy: dict[str, Any]) -> dict[str, Any]:
     """解析buddy数据
 
     Args:
@@ -707,7 +698,7 @@ def parse_buddy(buddy: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_buddies() -> Optional[Dict]:
+async def get_buddies() -> dict | None:
     """获取所有buddy数据
 
     Returns:
@@ -716,10 +707,7 @@ async def get_buddies() -> Optional[Dict]:
     try:
         response = await get_request_json("buddies?language=all")
         if response:
-            return {
-                parse_buddy(buddy)["uuid"]: parse_buddy(buddy)
-                for buddy in response["data"]
-            }
+            return {parse_buddy(buddy)["uuid"]: parse_buddy(buddy) for buddy in response["data"]}
     except ResponseError as error:
         ResponseError(f"buddy.request：{error}")
     except DataParseError as error:
@@ -729,7 +717,7 @@ async def get_buddies() -> Optional[Dict]:
     return None
 
 
-def parse_skin_chroma(chroma: Dict[str, Any]) -> Dict[str, Any]:
+def parse_skin_chroma(chroma: dict[str, Any]) -> dict[str, Any]:
     """解析武器外观染色数据
 
     Args:
@@ -748,7 +736,7 @@ def parse_skin_chroma(chroma: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_skin_chromas() -> Optional[Dict[str, Dict[str, Any]]]:
+async def get_skin_chromas() -> dict[str, dict[str, Any]] | None:
     """获取所有皮肤染色数据
 
     Returns:
@@ -763,5 +751,5 @@ async def get_skin_chromas() -> Optional[Dict[str, Dict[str, Any]]]:
                 chromas[chroma_info["uuid"]] = chroma_info
             return chromas
     except Exception as e:
-        print(f"获取皮肤染色信息时发生错误：{e}")
+        logger.warning(f"获取皮肤染色信息时发生错误：{e}")
     return None

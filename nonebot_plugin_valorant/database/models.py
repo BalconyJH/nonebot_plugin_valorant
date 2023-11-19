@@ -1,16 +1,13 @@
-from sqlalchemy.orm import Mapped, Session, relationship, declarative_base
-from sqlalchemy import JSON, BIGINT, VARCHAR, Column, Boolean, DateTime, func
+from sqlalchemy.orm import Mapped, Session, declarative_base
+from sqlalchemy import DDL, JSON, BIGINT, VARCHAR, Column, Boolean, DateTime, func, event
 
 Base = declarative_base()
-
-# association_table = Table(
-#     ""
-# )
 
 
 class BaseModel(Base):
     """
-    This class is the base model for all other models in the project. It provides common methods for querying, adding, deleting, and updating data in the database.
+    This class is the base model for all other models in the project. It provides common methods for querying, adding,
+    deleting, and updating data in the database.
 
     Attributes:
         __abstract__ (bool): True if this is an abstract class, False otherwise.
@@ -50,8 +47,16 @@ class BaseModel(Base):
     __abstract__ = True
 
     @classmethod
-    async def get(cls, session: Session, **kwargs):
-        return session.query(cls).filter_by(**kwargs)
+    async def get(cls, session: Session, *args, **kwargs):
+        if args:
+            query = session.query(*args)
+        else:
+            query = session.query(cls)
+
+        if kwargs:
+            query = query.filter_by(**kwargs)
+
+        return query
 
     @classmethod
     async def add(cls, session: Session, **kwargs):
@@ -74,37 +79,9 @@ class BaseModel(Base):
         query.update(update_values)
         session.commit()
 
-
-# class UserShop(BaseModel):
-#     """
-#     This class represents a user's shop in the application.
-#
-#     Attributes:
-#         uuid (str): The unique identifier of the user shop.
-#         bonus_store (Relationship["BonusStore"]): The relationship between the user shop and associated bonus store.
-#         skins_store (Relationship["SkinsStore"]): The relationship between the user shop and associated skins store.
-#         accessory_store (Relationship["AccessoryStore"]): The relationship between the user shop and associated accessory store.
-#
-#     """
-#
-#     __tablename__ = "user_shop"
-#
-#     uuid = Column(VARCHAR(255), primary_key=True)
-#     bonus_store: relationship(
-#         "BonusStore",
-#         backref="user_shop",
-#         primaryjoin="UserShop.uuid == foreign(BonusStore.uuid)",
-#     )
-#     skins_store: relationship(
-#         "SkinsStore",
-#         backref="user_shop",
-#         primaryjoin="UserShop.uuid == foreign(SkinsStore.uuid)",
-#     )
-#     accessory_store: relationship(
-#         "AccessoryStore",
-#         backref="user_shop",
-#         primaryjoin="UserShop.uuid == foreign(AccessoryStore.uuid)",
-#     )
+    # @classmethod
+    # async def get_all(cls, session: Session, *args):
+    #     return session.query(cls, *args).all()
 
 
 # class FeaturedBundle:
@@ -142,22 +119,35 @@ class SkinsStore(BaseModel):
     This class represents a skins store entry in the database.
 
     Attributes:
-        uuid (str): Player UUID.
-        offer_id_1 (str): Currency offer ID 1.
-        offer_id_2 (str): Currency offer ID 2.
-        offer_id_3 (str): Currency offer ID 3.
-        offer_id_4 (str): Currency offer ID 4.
+        puuid (str): Player UUID.
+        offer_1 (str): Currency offer ID 1.
+        offer_2 (str): Currency offer ID 2.
+        offer_3 (str): Currency offer ID 3.
+        offer_4 (str): Currency offer ID 4.
+        duration (inT): Duration of the store.
+        timestamp (datetime): Timestamp of the store.
     """
 
     __tablename__ = "skins_store"
 
-    uuid = Column(VARCHAR(255), primary_key=True)
-    offer_id_1 = Column(VARCHAR(255))
-    offer_id_2 = Column(VARCHAR(255))
-    offer_id_3 = Column(VARCHAR(255))
-    offer_id_4 = Column(VARCHAR(255))
+    puuid = Column(VARCHAR(36), primary_key=True)
+    offer_1 = Column(VARCHAR(36))
+    offer_2 = Column(VARCHAR(36))
+    offer_3 = Column(VARCHAR(36))
+    offer_4 = Column(VARCHAR(36))
     duration = Column(BIGINT)
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return (
+            f"<SkinsStore(puuid='{self.puuid}', "
+            f"offer_1='{self.offer_1}', "
+            f"offer_2='{self.offer_2}', "
+            f"offer_3='{self.offer_3}', "
+            f"offer_4='{self.offer_4}', "
+            f"duration='{self.duration}', "
+            f"timestamp='{self.timestamp}')>"
+        )
 
 
 class BonusStore(BaseModel):
@@ -188,26 +178,28 @@ class BonusStore(BaseModel):
 
 class User(BaseModel):
     """
-    This model represents a user and contains various information about the user, such as unique identifier, cookie, access token, etc.
+    This class represents a user in the database.
 
     Attributes:
-        qq_uid (str): The QQ UID of the user.
-        puuid (str): The PUUID of the user.
-        cookie (str): The cookie of the user.
+        qq_uid (str): The QQ user ID of the user.
+        puuid (str): The unique identifier of the user.
+        cookie (str): The cookie value of the user.
         access_token (str): The access token of the user.
         token_id (str): The token ID of the user.
-        expiry_token (str): The expiry time of the token.
-        emt (str): The entitlements token of the user.
+        expiry_token (int): The expiry of the token.
+        emt (str): The entitlement token of the user.
         username (str): The username of the user.
         region (str): The region of the user.
-        timestamp (str): The timestamp when the data was revised.
-
+        timestamp (datetime): The timestamp when the user was added to the database.
     """
 
     __tablename__ = "user"
 
-    qq_uid = Column(VARCHAR(30), nullable=False, primary_key=True)
-    puuid = Column(VARCHAR(255))
+    # 平台用户唯一标识
+    qq_uid = Column(VARCHAR(30), nullable=False, unique=True)
+
+    # Riot用户信息
+    puuid = Column(VARCHAR(36), primary_key=True)
     cookie = Column(JSON)
     access_token = Column(VARCHAR(2000))
     token_id = Column(VARCHAR(2000))
@@ -218,7 +210,35 @@ class User(BaseModel):
     timestamp = Column(DateTime, default=func.now(), onupdate=func.now())
 
     def __repr__(self):
-        return f"<User(puuid='{self.puuid}', cookie='{self.cookie}', access_token='{self.access_token}', token_id='{self.token_id}', emt='{self.emt}', username='{self.username}', region='{self.region}', qq_uid='{self.qq_uid}', timestamp='{self.timestamp}')>"
+        return (
+            f"<User(qq_uid='{self.qq_uid}', "
+            f"puuid='{self.puuid}', "
+            f"cookie='{self.cookie}', "
+            f"access_token='{self.access_token}', "
+            f"token_id='{self.token_id}', "
+            f"expiry_token='{self.expiry_token}', "
+            f"emt='{self.emt}', "
+            f"username='{self.username}', "
+            f"region='{self.region}', "
+            f"timestamp='{self.timestamp}')>"
+        )
+
+
+trigger = DDL(
+    """
+    CREATE TRIGGER after_user_insert
+    AFTER INSERT ON user
+    FOR EACH ROW
+    BEGIN
+        DECLARE puuid_exist INT;
+        SET puuid_exist = (SELECT COUNT(*) FROM skins_store WHERE puuid = NEW.puuid);
+        IF puuid_exist = 0 THEN
+            INSERT INTO skins_store (puuid) VALUES (NEW.puuid);
+        END IF;
+    END;
+"""
+)
+event.listen(User.__table__, "after_create", trigger)
 
 
 class WeaponSkins(BaseModel):
@@ -243,7 +263,13 @@ class WeaponSkins(BaseModel):
     hash = Column(VARCHAR(255))
 
     def __repr__(self):
-        return f"<WeaponSkins(uuid='{self.uuid}', names='{self.names}', icon='{self.icon}', tier='{self.tier}', hash='{self.hash}')>"
+        return (
+            f"<WeaponSkins(uuid='{self.uuid}', "
+            f"names='{self.names}', "
+            f"icon='{self.icon}', "
+            f"tier='{self.tier}', "
+            f"hash='{self.hash}')>"
+        )
 
 
 class Version(BaseModel):
@@ -275,7 +301,17 @@ class Version(BaseModel):
     initial = Column(Boolean, default=False)
 
     def __repr__(self):
-        return f"<Version('manifestId='{self.manifestId}', branch='{self.branch}', version='{self.version}', buildVersion='{self.buildVersion}', engineVersion='{self.engineVersion}', riotClientVersion='{self.riotClientVersion}', riotClientBuild='{self.riotClientBuild}', buildDate='{self.buildDate}', initial='{self.initial}')>"
+        return (
+            f"<Version('manifestId='{self.manifestId}', "
+            f"branch='{self.branch}', "
+            f"version='{self.version}', "
+            f"buildVersion='{self.buildVersion}', "
+            f"engineVersion='{self.engineVersion}', "
+            f"riotClientVersion='{self.riotClientVersion}', "
+            f"riotClientBuild='{self.riotClientBuild}', "
+            f"buildDate='{self.buildDate}', "
+            f"initial='{self.initial}')>"
+        )
 
 
 class Tier(BaseModel):
@@ -326,7 +362,13 @@ class Mission(BaseModel):
     xp: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
-        return f"<Mission(uuid='{self.uuid}', titles='{self.titles}', type='{self.type}', progress='{self.progress}', xp='{self.xp}')>"
+        return (
+            f"<Mission(uuid='{self.uuid}', "
+            f"titles='{self.titles}', "
+            f"type='{self.type}', "
+            f"progress='{self.progress}', "
+            f"xp='{self.xp}')>"
+        )
 
 
 class Playercard(BaseModel):
@@ -346,9 +388,7 @@ class Playercard(BaseModel):
     icon: Mapped[str] = Column(VARCHAR(255))
 
     def __repr__(self):
-        return (
-            f"<Playercard(uuid='{self.uuid}', name='{self.name}', icon='{self.icon}')>"
-        )
+        return f"<Playercard(uuid='{self.uuid}', name='{self.name}', icon='{self.icon}')>"
 
 
 class Title(BaseModel):

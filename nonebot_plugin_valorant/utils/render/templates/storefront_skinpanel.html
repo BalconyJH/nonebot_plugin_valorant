@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>图片展示</title>
+</head>
+<body>
+
+{% for image in images %}
+<div style="text-align: center;">
+    <!-- 设置图片的宽和高 -->
+    <img src="{{ image.src }}" alt="{{ image.name }}" width="500">
+    <p>{{ image.name }} - {{ image.cost }}</p>
+</div>
+{% endfor %}
+
+</body>
+</html>

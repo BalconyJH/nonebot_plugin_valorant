@@ -1,8 +1,8 @@
-from typing import Any, Dict, Mapping, Optional
+from typing import Any
+from collections.abc import Mapping
 
 import urllib3
 
-from nonebot_plugin_valorant.utils import message_translator
 from nonebot_plugin_valorant.utils.requestlib.auth import AuthCredentials
 from nonebot_plugin_valorant.utils.requestlib.client import get_client_version
 from nonebot_plugin_valorant.utils.requestlib.player_info import PlayerInformation
@@ -18,9 +18,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class EndpointAPI:
-    def __init__(
-        self, player_info: PlayerInformation, auth_info: AuthCredentials
-    ) -> None:
+    def __init__(self, player_info: PlayerInformation, auth_info: AuthCredentials) -> None:
         """
         传入AuthCredentials初始化API
         Args:
@@ -31,7 +29,7 @@ class EndpointAPI:
         self.auth = Auth()
         # client platform 神秘参数,我也不知道哪来的
         # noinspection SpellCheckingInspection
-        self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"
+        self.client_platform = "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"  # noqa E501
 
         # language
         self.locale_code = "en-US"
@@ -43,7 +41,7 @@ class EndpointAPI:
         self.__format_region()
         self.__build_urls()
 
-    def __build_headers(self, headers, auth: AuthCredentials) -> Dict[str, Any]:
+    def __build_headers(self, headers, auth: AuthCredentials) -> dict[str, Any]:
         """build headers"""
 
         headers["X-Riot-ClientPlatform"] = self.client_platform
@@ -92,7 +90,7 @@ class EndpointAPI:
         # 基于地区和分区构建URL
         self.glz = base_endpoint_glz.format(region=self.region, shard=self.shard)
 
-    async def get(self, api_path: str = "/", api_url: str = "pd") -> Dict:
+    async def get(self, api_path: str = "/", api_url: str = "pd") -> dict:
         """
         从 API 获取数据。
 
@@ -110,9 +108,7 @@ class EndpointAPI:
 
         return await get_request_json(f"{api_endpoint}{api_path}", headers=self.headers)
 
-    async def put(
-        self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None
-    ) -> dict:
+    async def put(self, endpoint: str = "/", url: str = "pd", data: [dict, list] = None) -> dict:
         """
         异步发送 PUT 请求到 API。
 
@@ -128,9 +124,7 @@ class EndpointAPI:
             ResponseError: 如果 API 返回的响应结果为空，则抛出异常。
         """
         endpoint_url = getattr(self, url)
-        data = await put_request_json(
-            url=f"{endpoint_url}{endpoint}", data=data, headers=self.headers
-        )
+        data = await put_request_json(url=f"{endpoint_url}{endpoint}", data=data, headers=self.headers)
         return data
 
     async def fetch_contracts(self) -> Mapping[str, Any]:
@@ -240,7 +234,7 @@ class EndpointAPI:
 
         Valorant 点数的 ID 为 85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741。
         Radiant 点数的 ID 为 e59aa87c-4cbf-517a-5983-6e81511be9b7。
-        未知货币的 ID 为 f08d4ae3-939c-4576-ab26-09ce1f23bb37。
+        王国币 ID 为 f08d4ae3-939c-4576-ab26-09ce1f23bb37。
 
         Returns:
             包含玩家钱包中 Valorant 点数和 Radiant 点数余额的字典。
@@ -303,19 +297,11 @@ class EndpointAPI:
     async def __get_live_season(self, puuid: str) -> str:
         """Get the UUID of the live competitive season"""
         content = await self.fetch_content()
-        season_id = [
-            season["ID"]
-            for season in content["Seasons"]
-            if season["IsActive"] and season["Type"] == "act"
-        ]
+        season_id = [season["ID"] for season in content["Seasons"] if season["IsActive"] and season["Type"] == "act"]
         return (
-            season_id[0]
-            if season_id
-            else (await self.fetch_player_mmr(puuid))["LatestCompetitiveUpdate"][
-                "SeasonID"
-            ]
+            season_id[0] if season_id else (await self.fetch_player_mmr(puuid))["LatestCompetitiveUpdate"]["SeasonID"]
         )
 
-    async def __check_puuid(self, puuid: Optional[str] = None) -> str:
+    async def __check_puuid(self, puuid: str | None = None) -> str:
         """If puuid passed into method is None make it current user's puuid"""
         return self.puuid if puuid is None else puuid

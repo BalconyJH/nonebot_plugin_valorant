@@ -1,7 +1,5 @@
 # 使用 md2pic
-import io
 from pathlib import Path
-from typing import Union
 
 from nonebot import require, on_command
 from nonebot_plugin_htmlrender import md_to_pic
@@ -16,8 +14,8 @@ md = Path(__file__).parent / "agreement.md"
 
 
 @agreement.handle()
-async def _md2pic(event: Union[PrivateMessageEventV11, PrivateMessageEventV12]):
-    with open(md, "r", encoding="utf-8") as file:
+async def _md2pic(event: PrivateMessageEventV11 | PrivateMessageEventV12):
+    with open(md, encoding="utf-8") as file:
         agreement_content = file.read()
 
     pic = await md_to_pic(md=agreement_content)

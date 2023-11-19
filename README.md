@@ -1,8 +1,6 @@
 # nonebot_plugin_valorant
 
-# 很不幸，拳头添加了cf防爬&旧的验证方式也失效了，该项目终止开发
-
-# Unfortunately, Riot has added cloudflare anti-climbing and the old verification method is no longer effective, so the project has been terminated.
+### 好像又有方案了，不确定再看看
 
 ## ✨️ 特性
 

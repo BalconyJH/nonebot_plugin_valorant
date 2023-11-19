@@ -1,8 +1,12 @@
 from pathlib import Path
-from typing import List, Union
 
 from nonebot import get_driver
 from pydantic import Extra, BaseSettings
+
+__all__ = (
+    "Config",
+    "plugin_config",
+)
 
 
 class Config(BaseSettings, extra=Extra.ignore):
@@ -24,7 +28,7 @@ class Config(BaseSettings, extra=Extra.ignore):
     valorant_proxies: str = ""
     valorant_timeout: int
     valorant_to_me: bool = True
-    valorant_command: Union[str, List[str]] = ""
+    valorant_command: str | list[str] = ""
     language_type: str = ""
     resource_path = Path(__file__).parent / "resources" / "image" / "skin"
 

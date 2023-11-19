@@ -1,31 +1,24 @@
 import os
-import asyncio
 from uuid import UUID
 from pathlib import Path
-from contextlib import suppress
 from urllib.parse import urlparse
 
 import aiohttp
 from nonebot import require
 from nonebot.log import logger
 from cryptography.fernet import Fernet
-from nonebot import on_command as _on_command
+from aiohttp.client_exceptions import ClientConnectorError
 from sqlalchemy.exc import SQLAlchemyError, ProgrammingError
-from aiohttp.client_exceptions import InvalidURL, ClientConnectorError
 
+from nonebot_plugin_valorant.database.db import DB
 from nonebot_plugin_valorant.config import plugin_config
 
-from ..database import DB
+from .cache import init_cache
 from ..database.db import engine
 from .translator import Translator
 from .requestlib.client import get_version
-from .cache import init_cache, cache_store, cache_version
-from .errors import (
-    DatabaseError,
-    ResponseError,
-    ConfigurationError,
-    AuthenticationError,
-)
+from ..resources.image.skin import download_images_from_db
+from .errors import DatabaseError, ResponseError, ConfigurationError
 
 # def on_command(cmd, *args, **kwargs):
 #     return _on_command(plugin_config.valorant_command + cmd, *args, **kwargs)
@@ -50,26 +43,6 @@ async def check_proxy():
                 logger.warning(f"代理连接错误: {e}")
 
 
-async def _check_database_validity() -> None:
-    """检查数据库是否有效。
-
-    本函数将检查数据库是否有效，如果无效则会抛出 DatabaseError 异常。
-
-    返回:
-        无返回值。
-
-    异常:
-        如果数据库无效，则会抛出 DatabaseError 异常。
-
-    用法:
-        ```python
-        await _check_database_validity()
-        ```
-    """
-    if not isinstance(plugin_config.valorant_database, str):
-        raise DatabaseError("数据库无效，请检查数据库")
-
-
 async def _verify_db_resource(_cache) -> None:
     """异步初始化数据库或验证资源时效性。
 
@@ -89,6 +62,7 @@ async def _verify_db_resource(_cache) -> None:
     if not hasattr(_cache, "initial") or _cache.initial is False:
         await DB.init()
         await init_cache()
+        await cache_resources()
         logger.info("数据库初始化完成")
 
     if _cache.initial is True:
@@ -100,7 +74,8 @@ async def _verify_db_resource(_cache) -> None:
 
 async def check_db():
     try:
-        await _check_database_validity()
+        if not isinstance(plugin_config.valorant_database, str):
+            raise DatabaseError("数据库无效，请检查数据库")
 
         with engine.connect():
             _cache = await DB.get_version()
@@ -132,7 +107,7 @@ async def generate_database_key():
     if os.path.isfile(key_path):
         # 使用已存在的密钥文件
         try:
-            with open(key_path, "r") as f:
+            with open(key_path) as f:
                 key_str = f.read().encode()
                 key = Fernet(key_str)
         except Exception as e:
@@ -195,23 +170,26 @@ async def _verify_resource_timeliness(_cache) -> bool:
             raise DatabaseError(f"数据库错误：{str(e)}") from e
 
 
-# async def cache_image_resources():
+async def cache_resources():
+    # skin
+    skin_db_data = await DB.get_all_skins_icon()
+    await download_images_from_db(skin_db_data)
+
+
+async def user_login_status(
+    qq_uid: str,
+) -> bool:
+    return bool(await DB.get_user(qq_uid))
 
 
 async def on_startup():
     """启动前检查"""
-    # await _verify_url_legality(plugin_config.valorant_proxies)
     await check_proxy()
     await check_db()
     await generate_database_key()
 
 
 require("nonebot_plugin_apscheduler")
+
+
 from nonebot_plugin_apscheduler import scheduler  # noqa
-
-
-async def user_login_status(
-    qq_uid: str,
-):
-    data = await DB.get_user(qq_uid)
-    return data is not None

@@ -1,8 +1,9 @@
-from typing import Any, Dict, Union
+from typing import Any
 
+from nonebot.typing import T_State
 from nonebot import logger, on_command
-from nonebot.params import Event, T_State, ArgPlainText
-from nonebot_plugin_saa import Text, Image, MessageFactory
+from nonebot.params import ArgPlainText
+from nonebot_plugin_saa import Text, MessageFactory
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent as PrivateMessageEventV11
 from nonebot.adapters.onebot.v12 import PrivateMessageEvent as PrivateMessageEventV12
 
@@ -17,25 +18,20 @@ auth = Auth()
 # async def cache_user_cookie(username: str, password: str) -> Optional[dict[str, Any]]:
 #     return await auth.authenticate(username, password)
 
-login.handle()
 login.__doc__ = """用户登录"""
 
 
 async def login_db(
-    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
-    result: Dict[str, Any],
+    event: PrivateMessageEventV11 | PrivateMessageEventV12,
+    result: dict[str, Any],
 ):
     if result["auth"] == "response":
         try:
-            region = await auth.get_region(
-                result["data"]["access_token"], result["data"]["token_id"]
-            )
-            entitlements_token = await auth.get_entitlements_token(
-                result["data"]["access_token"]
-            )
+            region = await auth.get_region(result["data"]["access_token"], result["data"]["token_id"])
+            entitlements_token = await auth.get_entitlements_token(result["data"]["access_token"])
             puuid, name, tag = await auth.get_userinfo(result["data"]["access_token"])
             await DB.login(
-                qq_uid=str(event.user_id),
+                qq_uid=str(event.get_user_id()),
                 username=f"{name}#{tag}",
                 cookie=result["data"]["cookie"],
                 access_token=result["data"]["access_token"],
@@ -45,22 +41,22 @@ async def login_db(
                 emt=entitlements_token,
                 puuid=puuid,
             )
-            logger.info(f"{name}#{tag}登录成功, QQ:{event.user_id}")
+            logger.info(f"{name}#{tag}登录成功, QQ:{event.get_user_id()}")
             await login.finish(f"{name}#{tag}登录成功")
         except AuthenticationError as e:
             await login.finish(f"登录失败{e}")
 
 
 @login.handle()
-async def _(event: Union[PrivateMessageEventV11, PrivateMessageEventV12]):
-    if await user_login_status(str(event.user_id)) is True:
+async def _(event: PrivateMessageEventV11 | PrivateMessageEventV12):
+    if await user_login_status(str(event.get_user_id())) is True:
         await login.finish("您已登录,如需更换账号请先注销")
 
 
 @login.got("username", prompt="请输入您的Riot用户名")
 @login.got("password", prompt="请输入您的Riot密码")
 async def _(
-    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
+    event: PrivateMessageEventV11 | PrivateMessageEventV12,
     state: T_State,
     username: str = ArgPlainText("username"),
     password: str = ArgPlainText("password"),
@@ -68,9 +64,7 @@ async def _(
     state["username"] = username
     state["password"] = password
     try:
-        result = await auth.authenticate(
-            username=state["username"], password=state["password"]
-        )
+        result = await auth.authenticate(username=state["username"], password=state["password"])
         state["result"] = result
         if result == "None":
             msg_builder = MessageFactory(Text("未知错误"))
@@ -91,14 +85,12 @@ async def _(
 
 @login.got("code", prompt="请输入您的2FA验证码")
 async def _(
-    event: Union[PrivateMessageEventV11, PrivateMessageEventV12],
+    event: PrivateMessageEventV11 | PrivateMessageEventV12,
     state: T_State,
     code: str = ArgPlainText("code"),
 ):
     try:
-        state["result"] = await auth.auth_by_code(
-            code, cookies=state["result"]["cookie"]
-        )
+        state["result"] = await auth.auth_by_code(code, cookies=state["result"]["cookie"])
         if state["result"] == "None":
             msg_builder = MessageFactory(Text("未知错误"))
             await msg_builder.send()
