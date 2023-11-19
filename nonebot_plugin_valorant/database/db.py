@@ -1,18 +1,20 @@
 from nonebot import get_driver
 from nonebot.log import logger
-from sqlalchemy import create_engine
 from cryptography.fernet import Fernet
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_database, database_exists
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from nonebot_plugin_valorant.config import plugin_config
 from nonebot_plugin_valorant.utils.errors import DatabaseError
 from nonebot_plugin_valorant.database.models import Tier, User, Version, BaseModel, SkinsStore, WeaponSkins  # UserShop,
 
-engine = create_engine(plugin_config.valorant_database)
-Session = sessionmaker(bind=engine)
-session = Session()
+async_engine = create_async_engine(plugin_config.valorant_database)
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine,
+    class_=AsyncSession,
+)
+session = AsyncSessionLocal()
 
 # 生成密钥
 database_key = Fernet.generate_key()
@@ -50,8 +52,8 @@ class DB:
         创建数据库（如果不存在）。
         """
         try:
-            if not database_exists(engine.url):
-                create_database(engine.url)
+            if not database_exists(async_engine.url):
+                create_database(async_engine.url)
                 logger.debug("创建数据库成功")
         except SQLAlchemyError as e:
             logger.error(f"创建数据库失败{e}")
@@ -62,7 +64,7 @@ class DB:
         创建表格。
         """
         try:
-            BaseModel.metadata.create_all(engine)
+            BaseModel.metadata.create_all(async_engine)
             logger.info("创建表成功")
         except SQLAlchemyError as e:
             logger.error(f"创建表失败{e}")
@@ -72,7 +74,7 @@ class DB:
         """
         关闭数据库连接。
         """
-        engine.dispose()
+        await async_engine.dispose()
 
     @classmethod
     async def login(cls, **kwargs):
