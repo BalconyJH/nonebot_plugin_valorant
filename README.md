@@ -1,6 +1,7 @@
 # nonebot_plugin_valorant
 
 ### 好像又有方案了，不确定再看看
+[![wakatime](https://wakatime.com/badge/user/c7352fe7-66c4-4bf7-b622-861ca6868f13/project/b579a28f-8052-4642-9625-676a386d16a0.svg)](https://wakatime.com/badge/user/c7352fe7-66c4-4bf7-b622-861ca6868f13/project/b579a28f-8052-4642-9625-676a386d16a0)
 
 ## ✨️ 特性
 
